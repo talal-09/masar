@@ -1,0 +1,9 @@
+{% extends "backoffice/base.html" %}
+{% block content %}
+<section class="bo-confirm bo-card">
+    <span>!</span><p class="bo-eyebrow">إجراء حساس</p>
+    <h2>هل تريد حذف «{{ instance }}»؟</h2>
+    <p>لن يمكن التراجع عن هذا الإجراء. إذا كان السجل مرتبطًا ببيانات تشغيلية فسيتم منع الحذف تلقائيًا.</p>
+    <form method="post">{% csrf_token %}<button class="bo-danger-button">نعم، احذف السجل</button><a class="bo-ghost-button" href="{% url 'backoffice:resource-list' resource.slug %}">إلغاء</a></form>
+</section>
+{% endblock %}

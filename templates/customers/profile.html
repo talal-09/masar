@@ -1,0 +1,17 @@
+{% extends "portal/form_page.html" %}
+{% block title %}ملفي الشخصي{% endblock %}
+{% block content %}
+    <div class="mx-auto max-w-2xl">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div><h1 class="text-3xl font-black">ملفي الشخصي</h1><p class="mt-2 text-slate-500">عدّل بياناتك الأساسية ووسائل التواصل.</p></div>
+            <a href="{% url 'customers:password' %}" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black">تغيير كلمة المرور</a>
+        </div>
+        <form method="post" class="mt-8 space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            {% csrf_token %}
+            {% for field in form %}
+                <div><label class="text-sm font-black" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="mt-2 text-sm text-rose-600">{{ error }}</p>{% endfor %}</div>
+            {% endfor %}
+            <button class="w-full rounded-xl bg-slate-950 px-5 py-3.5 font-black text-white">حفظ التعديلات</button>
+        </form>
+    </div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "backoffice/base.html" %}
+{% block content %}
+<section class="bo-form-layout">
+    <form method="post" enctype="multipart/form-data" class="bo-card bo-form-card">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="bo-alert error">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="bo-form-grid">
+            {% for field in form %}
+                <div class="{% if field.field.widget.input_type == 'checkbox' %}bo-check-field{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<b>*</b>{% endif %}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}
+                    {% for error in field.errors %}<span class="bo-field-error">{{ error }}</span>{% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="bo-form-actions">
+            <button class="bo-primary-button" type="submit">حفظ التغييرات</button>
+            <a class="bo-ghost-button" href="{% url 'backoffice:resource-list' resource.slug %}">إلغاء</a>
+        </div>
+    </form>
+    <aside class="bo-card bo-form-help">
+        <span>{{ resource.icon }}</span>
+        <h3>{{ resource.singular }}</h3>
+        <p>أدخل البيانات بعناية. يتم التحقق من جميع الحقول والعلاقات قبل الحفظ لحماية اتساق المنصة.</p>
+        <ul><li>الحقول المميزة بنجمة مطلوبة.</li><li>التغييرات تطبق مباشرة على المنصة.</li><li>الصلاحيات تحدد من يمكنه الوصول.</li></ul>
+    </aside>
+</section>
+{% endblock %}

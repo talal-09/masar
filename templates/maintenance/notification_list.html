@@ -1,0 +1,13 @@
+{% extends "portal/base.html" %}
+{% block title %}الإشعارات{% endblock %}
+{% block content %}
+    <h1 class="text-3xl font-black">الإشعارات</h1>
+    <div class="mt-8 space-y-3">
+        {% for notification in notifications %}
+            <article class="flex flex-col justify-between gap-4 rounded-3xl border p-5 sm:flex-row sm:items-center {% if notification.is_read %}border-slate-200 bg-white{% else %}border-teal-200 bg-teal-50{% endif %}">
+                <div><strong>{{ notification.title }}</strong><p class="mt-1 text-sm text-slate-500">{{ notification.message }}</p><small class="mt-2 block text-slate-400">{{ notification.created_at|date:"Y/m/d - h:i A" }}</small></div>
+                {% if not notification.is_read %}<form method="post" action="{% url 'maintenance:notification-read' notification.pk %}">{% csrf_token %}<button class="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white">فتح</button></form>{% endif %}
+            </article>
+        {% empty %}<p class="rounded-3xl bg-white p-10 text-center text-slate-400">لا توجد إشعارات.</p>{% endfor %}
+    </div>
+{% endblock %}

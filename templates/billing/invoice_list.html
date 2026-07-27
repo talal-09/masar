@@ -1,0 +1,11 @@
+{% extends "portal/base.html" %}
+{% block title %}فواتيري{% endblock %}
+{% block content %}
+    <h1 class="text-2xl font-black sm:text-3xl">فواتيري</h1>
+    <p class="mt-2 text-slate-500">الفواتير المرتبطة بطلبات صيانة سياراتك فقط.</p>
+    <div class="mt-8 space-y-4">
+        {% for invoice in invoices %}
+            <a href="{% url 'billing:invoice-detail' invoice.pk %}" class="flex flex-col justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-[#d8c18d] sm:flex-row sm:items-center sm:p-6"><div><strong>INV-{{ invoice.pk }}</strong><p class="mt-1 text-sm text-slate-400">{{ invoice.work_order.vehicle }} · {{ invoice.created_at|date:"Y/m/d" }}</p></div><div class="text-right sm:text-left"><strong class="block text-xl">{{ invoice.total }} ر.س</strong><span class="text-sm font-bold {% if invoice.status == 'paid' %}text-teal-700{% else %}text-amber-700{% endif %}">{{ invoice.get_status_display }}</span></div></a>
+        {% empty %}<p class="rounded-3xl bg-white p-10 text-center text-slate-400">لا توجد فواتير.</p>{% endfor %}
+    </div>
+{% endblock %}

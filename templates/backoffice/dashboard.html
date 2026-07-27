@@ -1,0 +1,55 @@
+{% extends "backoffice/base.html" %}
+{% block content %}
+<section class="bo-hero">
+    <div>
+        <span class="bo-eyebrow">نظرة تشغيلية مباشرة</span>
+        <h2>أهلًا {{ request.user.first_name|default:request.user.username }}، هذه صورة المركز اليوم.</h2>
+        <p>المؤشرات المهمة والمهام التي تحتاج انتباهك مجمعة في مكان واحد.</p>
+    </div>
+    <a href="{% url 'backoffice:resource-add' 'work-orders' %}" class="bo-primary-button">+ أمر صيانة جديد</a>
+</section>
+
+<section class="bo-stat-grid">
+    <article class="bo-stat-card accent"><div><span>أوامر نشطة</span><strong>{{ stats.active_orders }}</strong></div><i>◫</i><small>قيد الاستقبال أو التنفيذ</small></article>
+    <article class="bo-stat-card"><div><span>إجمالي العملاء</span><strong>{{ stats.customers }}</strong></div><i>◎</i><small>{{ stats.vehicles }} مركبة نشطة</small></article>
+    <article class="bo-stat-card"><div><span>المبالغ المحصلة</span><strong>{{ stats.revenue|floatformat:2 }}</strong></div><i>◉</i><small>ر.س عبر جميع الدفعات</small></article>
+    <article class="bo-stat-card warning"><div><span>قيد التحصيل</span><strong>{{ outstanding|floatformat:2 }}</strong></div><i>◈</i><small>ر.س متبقية على الفواتير</small></article>
+</section>
+
+<section class="bo-dashboard-grid">
+    <article class="bo-card bo-span-2">
+        <div class="bo-card-head"><div><p class="bo-eyebrow">مسار العمل</p><h3>حالة أوامر الصيانة</h3></div><a href="{% url 'backoffice:resource-list' 'work-orders' %}">عرض الكل</a></div>
+        <div class="bo-pipeline">
+            {% for stage in status_pipeline %}
+                <div><span>{{ forloop.counter|stringformat:"02d" }}</span><strong>{{ stage.count }}</strong><small>{{ stage.label }}</small></div>
+            {% endfor %}
+        </div>
+        <div class="bo-table-wrap">
+            <table><thead><tr><th>الأمر</th><th>العميل والمركبة</th><th>الفرع</th><th>الحالة</th></tr></thead>
+            <tbody>
+                {% for order in recent_orders %}
+                    <tr><td><a href="{% url 'backoffice:resource-edit' 'work-orders' order.pk %}">#{{ order.pk }}</a></td><td><strong>{{ order.customer.full_name }}</strong><small>{{ order.vehicle }}</small></td><td>{{ order.branch }}</td><td><span class="bo-status status-{{ order.status }}">{{ order.get_status_display }}</span></td></tr>
+                {% empty %}<tr><td colspan="4" class="bo-empty">لا توجد أوامر صيانة بعد.</td></tr>{% endfor %}
+            </tbody></table>
+        </div>
+    </article>
+    <aside class="bo-stack">
+        <article class="bo-card">
+            <div class="bo-card-head"><div><p class="bo-eyebrow">تنبيهات</p><h3>تحتاج انتباهك</h3></div></div>
+            <a class="bo-attention" href="{% url 'backoffice:resource-list' 'messages' %}"><span>✉</span><div><strong>{{ pending_messages }} رسائل مفتوحة</strong><small>طلبات العملاء غير المعالجة</small></div><b>←</b></a>
+            <a class="bo-attention" href="{% url 'backoffice:resource-list' 'reviews' %}"><span>★</span><div><strong>{{ pending_reviews }} تقييمات معلقة</strong><small>بانتظار المراجعة والنشر</small></div><b>←</b></a>
+        </article>
+        <article class="bo-card">
+            <div class="bo-card-head"><div><p class="bo-eyebrow">المخزون</p><h3>كميات منخفضة</h3></div><a href="{% url 'backoffice:resource-list' 'stock' %}">التفاصيل</a></div>
+            <div class="bo-low-list">
+                {% for stock in low_stock %}<div><span><strong>{{ stock.part.name }}</strong><small>{{ stock.branch.name }}</small></span><b>{{ stock.quantity }}</b></div>
+                {% empty %}<p class="bo-empty">المخزون ضمن الحدود الآمنة.</p>{% endfor %}
+            </div>
+        </article>
+        <article class="bo-mini-grid">
+            <div><strong>{{ active_branches }}</strong><span>فروع نشطة</span></div>
+            <div><strong>{{ total_parts }}</strong><span>قطعة متاحة</span></div>
+        </article>
+    </aside>
+</section>
+{% endblock %}

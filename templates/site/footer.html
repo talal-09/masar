@@ -1,0 +1,50 @@
+{% load static %}
+<footer id="contact" class="border-t border-slate-200 bg-white">
+    <div class="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-10 lg:py-20">
+        <div class="grid gap-12 md:grid-cols-2 lg:grid-cols-5">
+            <div class="lg:col-span-2">
+                <a href="{% url 'home' %}" class="flex h-24 w-64 items-center justify-center overflow-hidden">
+                    <img src="{% static 'images/masar_logo.png' %}?v=3" alt="شعار مَسَار — نظام إدارة صيانة السيارات" width="256" height="128" class="h-full w-full scale-[1.4] object-cover">
+                </a>
+                <p class="mt-5 max-w-md text-sm leading-7 text-slate-500">
+                    ورشة مَسَار لصيانة السيارات؛ خدمة واضحة، متابعة مستمرة، وعناية تستحقها سيارتك.
+                </p>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-black text-slate-950">المنتج</h3>
+                <div class="mt-5 grid gap-3 text-sm text-slate-500">
+                    <a href="#services" class="transition hover:text-teal-700">خدمات الورشة</a>
+                    <a href="#reviews" class="transition hover:text-teal-700">تقييمات العملاء</a>
+                    {% if user.is_authenticated and not user.is_staff %}
+                        <a href="{% url 'dashboard' %}" class="transition hover:text-teal-700">لوحة حسابي</a>
+                    {% elif not user.is_authenticated %}
+                        <a href="{% url 'login' %}" class="transition hover:text-teal-700">تسجيل الدخول</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-black text-slate-950">الشركة</h3>
+                <div class="mt-5 grid gap-3 text-sm text-slate-500">
+                    <a href="#branches" class="transition hover:text-teal-700">فروعنا</a>
+                    {% if user.is_authenticated %}<a href="{% url 'contact' %}" class="transition hover:text-teal-700">تواصل معنا</a>{% else %}<a href="{% url 'signup' %}" class="transition hover:text-teal-700">إنشاء حساب عميل</a>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-black text-slate-950">خدمة العميل</h3>
+                <div class="mt-5 grid gap-3 text-sm text-slate-500">
+                    <a href="{% url 'branches' %}" class="transition hover:text-teal-700">العناوين وأرقام الفروع</a>
+                    <a href="{% if user.is_authenticated and not user.is_staff %}{% url 'maintenance:order-create' %}{% else %}{% url 'login' %}?next={% url 'maintenance:order-create' %}{% endif %}" class="transition hover:text-teal-700">حجز موعد صيانة</a>
+                    <span>المملكة العربية السعودية</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-14 flex flex-col gap-4 border-t border-slate-200 pt-8 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+            <p>© <span id="currentYear"></span> مَسَار. جميع الحقوق محفوظة.</p>
+            <p>نهتم بسيارتك من الحجز حتى الاستلام.</p>
+        </div>
+    </div>
+</footer>

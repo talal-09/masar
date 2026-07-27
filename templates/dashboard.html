@@ -1,0 +1,51 @@
+{% extends "portal/base.html" %}
+{% block title %}لوحة حسابي{% endblock %}
+{% block content %}
+    <section class="rounded-3xl border border-[#ded4c1] bg-[#fffdf8] p-6 shadow-sm sm:p-8">
+        <span class="text-sm font-black text-[#9d7f43]">لوحة حسابك</span>
+        <h1 class="mt-2 text-3xl font-black tracking-tight sm:text-4xl">مرحبًا، {{ user.first_name|default:user.username }}</h1>
+        <p class="mt-3 text-slate-500">من هنا تدير سياراتك وتتابع الصيانة والفواتير بسهولة.</p>
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <a href="{% url 'maintenance:order-create' %}" class="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-950 px-5 font-black text-white hover:bg-[#9d7f43]">حجز صيانة جديد</a>
+        </div>
+    </section>
+
+    <section class="mt-10 grid gap-4 sm:grid-cols-3">
+        <a href="{% url 'customers:vehicle-list' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-teal-200">
+            <span class="text-sm font-bold text-slate-400">سياراتي</span>
+            <strong class="mt-3 block text-4xl font-black">{{ vehicles_count }}</strong>
+        </a>
+        <a href="{% url 'maintenance:order-list' %}" class="rounded-3xl bg-teal-600 p-6 text-white shadow-lg shadow-teal-600/20 transition hover:-translate-y-1">
+            <span class="text-sm font-bold text-teal-100">طلبات الصيانة</span>
+            <strong class="mt-3 block text-4xl font-black">{{ work_orders_count }}</strong>
+        </a>
+        <a href="{% url 'billing:invoice-list' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-teal-200">
+            <span class="text-sm font-bold text-slate-400">فواتيري</span>
+            <strong class="mt-3 block text-4xl font-black">{{ invoices_count }}</strong>
+        </a>
+    </section>
+
+    <section class="mt-8">
+        <h2 class="text-lg font-black">روابط سريعة</h2>
+        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <a href="{% url 'customers:profile' %}" class="flex min-h-14 items-center justify-between rounded-2xl border border-[#ded4c1] bg-[#fffdf8] px-4 font-bold transition hover:border-[#d8c18d] hover:text-[#9d7f43]"><span>ملفي الشخصي</span><span>←</span></a>
+            <a href="{% url 'maintenance:notifications' %}" class="flex min-h-14 items-center justify-between rounded-2xl border border-[#ded4c1] bg-[#fffdf8] px-4 font-bold transition hover:border-[#d8c18d] hover:text-[#9d7f43]"><span>الإشعارات</span><span>←</span></a>
+            <a href="{% url 'branches' %}" class="flex min-h-14 items-center justify-between rounded-2xl border border-[#ded4c1] bg-[#fffdf8] px-4 font-bold transition hover:border-[#d8c18d] hover:text-[#9d7f43]"><span>الفروع</span><span>←</span></a>
+            <a href="{% url 'contact' %}" class="flex min-h-14 items-center justify-between rounded-2xl border border-[#ded4c1] bg-[#fffdf8] px-4 font-bold transition hover:border-[#d8c18d] hover:text-[#9d7f43]"><span>تواصل معنا</span><span>←</span></a>
+        </div>
+    </section>
+
+    <section class="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <h2 class="text-xl font-black">أحدث طلباتي</h2>
+        <div class="mt-6 space-y-3">
+            {% for order in recent_orders %}
+                <a href="{% url 'maintenance:order-detail' order.pk %}" class="flex flex-col justify-between gap-3 rounded-2xl bg-slate-50 p-4 transition hover:bg-teal-50 sm:flex-row sm:items-center">
+                    <div><strong>WO-{{ order.id }} - {{ order.vehicle }}</strong><p class="mt-1 text-sm text-slate-400">{{ order.created_at|date:"Y/m/d" }}</p></div>
+                    <span class="w-fit rounded-full bg-white px-3 py-1 text-sm font-bold text-teal-700">{{ order.get_status_display }}</span>
+                </a>
+            {% empty %}
+                <div class="rounded-2xl bg-slate-50 px-5 py-12 text-center text-slate-400">لا توجد طلبات صيانة حتى الآن.</div>
+            {% endfor %}
+        </div>
+    </section>
+{% endblock %}

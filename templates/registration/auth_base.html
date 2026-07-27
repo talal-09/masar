@@ -1,0 +1,57 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} | مَسَار</title>
+    <link rel="icon" href="{% static 'images/masar_logo.png' %}?v=3" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --font-sans: "Tajawal", sans-serif;
+            --color-teal-50: #f0f6f5; --color-teal-500: #146b72;
+            --color-teal-600: #0b5660; --color-teal-700: #073f49;
+            --color-cyan-600: #ad8f50;
+            --color-slate-50: #faf8f2; --color-slate-100: #f2eee4;
+            --color-slate-200: #e3dccd; --color-slate-900: #0a3942;
+            --color-slate-950: #052f38;
+        }
+        @layer base { body { @apply font-sans antialiased; } }
+    </style>
+</head>
+<body class="min-h-screen bg-[#052f38]">
+    <main class="relative grid min-h-screen place-items-center overflow-hidden px-5 py-12">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(184,154,92,.25),transparent_30%),radial-gradient(circle_at_80%_80%,rgba(20,107,114,.28),transparent_30%)]"></div>
+        <a href="{% url 'home' %}" class="absolute right-5 top-5 z-10 inline-flex items-center gap-2 text-sm font-bold text-slate-400 transition hover:text-white sm:right-8 sm:top-8">
+            <span>→</span> العودة للرئيسية
+        </a>
+
+        <section id="authCard" class="relative z-10 w-full max-w-md rounded-[2rem] border border-[#dfd2b9] bg-[#fffdf8] p-6 shadow-2xl shadow-black/30 sm:p-9">
+            <a href="{% url 'home' %}" class="mx-auto flex h-24 w-64 items-center justify-center overflow-hidden">
+                <img src="{% static 'images/masar_logo.png' %}?v=3" alt="شعار مَسَار — نظام إدارة صيانة السيارات" width="256" height="128" class="h-full w-full scale-[1.4] object-cover">
+            </a>
+
+            <div class="mt-8 text-center">
+                <h1 class="text-3xl font-black tracking-tight text-slate-950">{% block heading %}{% endblock %}</h1>
+                <p class="mt-2 text-sm leading-6 text-slate-500">{% block description %}{% endblock %}</p>
+            </div>
+
+            {% block content %}{% endblock %}
+        </section>
+    </main>
+
+    <script type="module">
+        import { animate } from "https://cdn.jsdelivr.net/npm/motion@latest/+esm";
+        if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            animate("#authCard", { opacity: [0, 1], y: [24, 0], scale: [.98, 1] }, {
+                duration: .55,
+                ease: [0.22, 1, 0.36, 1]
+            });
+        }
+    </script>
+</body>
+</html>
