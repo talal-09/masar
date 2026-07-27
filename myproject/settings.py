@@ -8,8 +8,20 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# تحميل المتغيرات من ملف .env
+# تحميل ملف .env في بيئة التطوير المحلية
 load_dotenv(BASE_DIR / ".env")
+
+
+# ==========================
+# دوال مساعدة
+# ==========================
+
+def env_list(name: str, default: str = "") -> list[str]:
+    return [
+        item.strip()
+        for item in os.getenv(name, default).split(",")
+        if item.strip()
+    ]
 
 
 # ==========================
@@ -18,21 +30,32 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
-    "django-insecure-change-this-development-key",
+    "django-insecure-local-development-only",
 )
 
-DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
+DEBUG = os.getenv("DJANGO_DEBUG", "True").strip().lower() == "true"
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
-    if host.strip()
-]
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
-    if origin.strip()
-]
+ALLOWED_HOSTS = env_list(
+    "DJANGO_ALLOWED_HOSTS",
+    "127.0.0.1,localhost",
+)
+
+CSRF_TRUSTED_ORIGINS = env_list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    "",
+)
+
+# Render يضيف هذا المتغير تلقائيًا لخدمة الويب
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+
+if RENDER_EXTERNAL_HOSTNAME:
+    if RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+    render_origin = f"https://{RENDER_EXTERNAL_HOSTNAME}"
+
+    if render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(render_origin)
 
 
 # ==========================
@@ -69,12 +92,15 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+
     "backoffice.middleware.PortalIsolationMiddleware",
+
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -84,7 +110,7 @@ ROOT_URLCONF = "myproject.urls"
 
 
 # ==========================
-# Templates
+# القوالب
 # ==========================
 
 TEMPLATES = [
@@ -112,17 +138,25 @@ WSGI_APPLICATION = "myproject.wsgi.application"
 # قاعدة البيانات
 # ==========================
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-DATABASES = {
-    "default": (
-        dj_database_url.parse(DATABASE_URL, conn_max_age=600, conn_health_checks=True)
-        if DATABASE_URL
-        else {
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=not DEBUG,
+        )
+    }
+else:
+    # قاعدة التطوير المحلية
+    DATABASES = {
+        "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
         }
-    )
-}
+    }
 
 
 # ==========================
@@ -179,9 +213,9 @@ USE_TZ = True
 # ==========================
 
 CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
-    "API_KEY": os.getenv("CLOUDINARY_API_KEY"),
-    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", "").strip(),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY", "").strip(),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", "").strip(),
     "SECURE": True,
 }
 
@@ -189,6 +223,7 @@ CLOUDINARY_CONFIGURED = all(
     CLOUDINARY_STORAGE[key]
     for key in ("CLOUD_NAME", "API_KEY", "API_SECRET")
 )
+
 if CLOUDINARY_CONFIGURED:
     cloudinary.config(
         cloud_name=CLOUDINARY_STORAGE["CLOUD_NAME"],
@@ -199,7 +234,7 @@ if CLOUDINARY_CONFIGURED:
 
 
 # ==========================
-# Static وMedia Storage
+# التخزين
 # ==========================
 
 STORAGES = {
@@ -211,13 +246,16 @@ STORAGES = {
         ),
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": (
+            "whitenoise.storage."
+            "CompressedManifestStaticFilesStorage"
+        ),
     },
 }
 
 
 # ==========================
-# Static Files
+# الملفات الثابتة
 # ==========================
 
 STATIC_URL = "/static/"
@@ -230,17 +268,15 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 
 # ==========================
-# Media Files
+# ملفات الوسائط
 # ==========================
 
-# الملفات الجديدة لن تُحفظ داخل هذا المسار،
-# بل ستُرفع تلقائيًا إلى Cloudinary.
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 
 # ==========================
-# الإعدادات العامة
+# إعدادات عامة
 # ==========================
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -249,7 +285,6 @@ LOGIN_REDIRECT_URL = "/dashboard/"
 LOGIN_URL = "/login/"
 LOGOUT_REDIRECT_URL = "/"
 
-# يمكن للمركز إخفاء اسم الفني عن العميل بتغييرها إلى False
 SHOW_TECHNICIAN_TO_CUSTOMERS = True
 
 
@@ -259,10 +294,17 @@ SHOW_TECHNICIAN_TO_CUSTOMERS = True
 
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+
 SECURE_SSL_REDIRECT = not DEBUG
+
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
 SECURE_HSTS_PRELOAD = not DEBUG
+
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SECURE_PROXY_SSL_HEADER = (
+    "HTTP_X_FORWARDED_PROTO",
+    "https",
+)
