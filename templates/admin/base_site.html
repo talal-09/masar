@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{% if LANGUAGE_CODE == "ar" %}إدارة مركز الصيانة{% else %}Service Center Administration{% endif %}{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}" class="admin-brand"><span class="admin-logo-crop"><img src="{% static 'images/masar_logo.png' %}?v=3" alt="شعار مَسَار" width="150" height="75"></span><span>{% if LANGUAGE_CODE == "ar" %}إدارة مركز الصيانة{% else %}Service Center Administration{% endif %}</span></a>
+</div>
+{% endblock %}
+
+{% block usertools %}
+<form class="language-switcher" action="{% url 'set_language' %}" method="post">
+    {% csrf_token %}
+    <input name="next" type="hidden" value="{{ request.get_full_path }}">
+    <button name="language" value="ar" type="submit" class="{% if LANGUAGE_CODE == 'ar' %}selected{% endif %}">العربية</button>
+    <button name="language" value="en" type="submit" class="{% if LANGUAGE_CODE == 'en' %}selected{% endif %}">English</button>
+</form>
+{{ block.super }}
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    :root {
+        --primary: #073f49; --secondary: #0b5660; --accent: #d8bd82;
+        --primary-fg: #fff; --body-bg: #faf8f2; --body-fg: #183f45;
+        --header-bg: #052f38; --header-color: #fff;
+        --breadcrumbs-bg: #0b5660; --link-fg: #0b5660;
+        --link-hover-color: #9d7f43; --selected-bg: #eee4cd;
+        --selected-row: #f7f3e9; --button-bg: #073f49;
+        --button-hover-bg: #9d7f43; --default-button-bg: #ad8f50;
+        --default-button-hover-bg: #8f723b;
+    }
+    body { background: #faf8f2; }
+    #header { box-shadow: 0 8px 30px rgba(5,47,56,.14); }
+    .module, .inline-group { border-radius: 10px; overflow: hidden; box-shadow: 0 8px 24px rgba(5,47,56,.05); }
+    #user-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .admin-brand { display: inline-flex !important; align-items: center; gap: 10px; }
+    .admin-logo-crop { display: inline-flex; width: 120px; height: 44px; align-items: center; justify-content: center; overflow: hidden; border-radius: 8px; background: #fff; }
+    .admin-logo-crop img { width: 120px; height: 60px; object-fit: cover; transform: scale(1.45); }
+    .language-switcher { display: inline-flex; gap: 4px; direction: ltr; }
+    .language-switcher button {
+        border: 1px solid rgba(216, 189, 130, 0.7);
+        border-radius: 5px;
+        padding: 5px 10px;
+        color: #fff;
+        background: transparent;
+        cursor: pointer;
+        font: inherit;
+    }
+    .language-switcher button:hover,
+    .language-switcher button.selected {
+        background: #fff;
+        color: #073f49;
+    }
+</style>
+{% endblock %}

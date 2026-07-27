@@ -1,0 +1,48 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>دخول إدارة المنصة | مَسَار</title>
+    <link rel="stylesheet" href="{% static 'backoffice/app.css' %}">
+</head>
+<body class="bo-login-page">
+    <main class="bo-login-shell">
+        <section class="bo-login-story">
+            <div class="bo-login-brand"><span>م</span><strong>مَسَار</strong></div>
+            <div class="bo-story-copy">
+                <span class="bo-eyebrow">مركز التحكم التشغيلي</span>
+                <h1>كل تفاصيل مركزك،<br><em>في مساحة واحدة.</em></h1>
+                <p>راقب العمل، أدر الفريق، وتابع تجربة العميل من الاستقبال حتى التحصيل.</p>
+            </div>
+            <div class="bo-story-grid">
+                <div><strong>تشغيل مباشر</strong><small>الصيانة والمواعيد والفنيون</small></div>
+                <div><strong>رؤية مالية</strong><small>الفواتير والمدفوعات والتحصيل</small></div>
+                <div><strong>مخزون مترابط</strong><small>القطع والكميات وحركة الاستخدام</small></div>
+            </div>
+        </section>
+        <section class="bo-login-panel">
+            <div class="bo-login-card">
+                <span class="bo-lock">⌾</span>
+                <p class="bo-eyebrow">بوابة فريق المركز</p>
+                <h2>مرحبًا بعودتك</h2>
+                <p class="bo-muted">استخدم حساب الموظف المصرح له لإدارة المنصة.</p>
+                <form method="post" class="bo-login-form">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="bo-alert error">{{ form.non_field_errors|striptags }}</div>
+                    {% endif %}
+                    <label for="{{ form.username.id_for_label }}">اسم المستخدم</label>
+                    {{ form.username }}
+                    <label for="{{ form.password.id_for_label }}">كلمة المرور</label>
+                    {{ form.password }}
+                    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                    <button class="bo-primary-button" type="submit">دخول لوحة الإدارة <span>←</span></button>
+                </form>
+                <a href="{% url 'home' %}" class="bo-back-link">العودة إلى موقع العملاء</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

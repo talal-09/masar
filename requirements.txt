@@ -1,0 +1,13 @@
+Django==6.0.7
+reportlab==5.0.0
+arabic-reshaper==3.0.1
+python-bidi==0.6.11
+pypdf==6.14.2
+pdfplumber==0.11.10
+cloudinary
+django-cloudinary-storage
+dj-database-url
+gunicorn
+psycopg[binary]
+python-dotenv
+whitenoise

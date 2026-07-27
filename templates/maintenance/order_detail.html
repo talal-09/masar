@@ -1,0 +1,101 @@
+{% extends "portal/base.html" %}
+{% block title %}أمر الصيانة WO-{{ order.pk }}{% endblock %}
+{% block content %}
+    <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div><span class="text-sm font-black text-teal-700">أمر الصيانة</span><h1 class="mt-2 text-3xl font-black">WO-{{ order.pk }}</h1><p class="mt-2 text-slate-500">{{ order.vehicle }} · {{ order.branch }}</p></div>
+        <span
+            id="liveOrderStatus"
+            data-status-url="{% url 'maintenance:order-status' order.pk %}"
+            class="w-fit rounded-full bg-teal-100 px-5 py-2 font-black text-teal-800"
+        >{{ order.get_status_display }}</span>
+    </div>
+
+    <div class="mt-8 grid gap-6 lg:grid-cols-3">
+        <section class="space-y-6 lg:col-span-2">
+            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-xl font-black">تفاصيل الطلب</h2>
+                <dl class="mt-5 grid gap-4 text-sm sm:grid-cols-2">
+                    <div><dt class="text-slate-400">الوصف</dt><dd class="mt-1 font-bold">{{ order.description }}</dd></div>
+                    <div><dt class="text-slate-400">قراءة العداد</dt><dd class="mt-1 font-bold">{{ order.mileage }} كم</dd></div>
+                    <div><dt class="text-slate-400">الموعد</dt><dd class="mt-1 font-bold">{{ order.scheduled_at|date:"Y/m/d - h:i A"|default:"لم يحدد" }}</dd></div>
+                    <div><dt class="text-slate-400">ملاحظات المركز</dt><dd class="mt-1 font-bold">{{ order.center_notes|default:"لا توجد ملاحظات" }}</dd></div>
+                    {% if show_technician %}<div><dt class="text-slate-400">الفني المسؤول</dt><dd class="mt-1 font-bold">{{ order.assigned_technician|default:"لم يحدد" }}</dd></div>{% endif %}
+                    <div><dt class="text-slate-400">بدء العمل</dt><dd class="mt-1 font-bold">{{ order.started_at|date:"Y/m/d - h:i A"|default:"لم يبدأ" }}</dd></div>
+                    <div><dt class="text-slate-400">انتهاء العمل</dt><dd class="mt-1 font-bold">{{ order.completed_at|date:"Y/m/d - h:i A"|default:"لم يكتمل" }}</dd></div>
+                </dl>
+            </article>
+
+            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-xl font-black">الخدمات المنفذة</h2>
+                <div class="mt-5 space-y-3">
+                    {% for item in order.services.all %}
+                        <div class="flex justify-between rounded-2xl bg-slate-50 p-4"><strong>{{ item.service }}</strong>{% if show_technician and item.technician %}<span class="text-sm text-slate-500">الفني: {{ item.technician }}</span>{% endif %}</div>
+                    {% empty %}<p class="text-slate-400">لم تسجل خدمات بعد.</p>{% endfor %}
+                </div>
+            </article>
+
+            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-xl font-black">قطع الغيار المركبة</h2>
+                <div class="mt-5 space-y-3">
+                    {% for item in order.installed_parts.all %}
+                        <div class="flex justify-between rounded-2xl bg-slate-50 p-4"><strong>{{ item.part }}</strong><span>{{ item.quantity }} × {{ item.unit_price }}</span></div>
+                    {% empty %}<p class="text-slate-400">لم تسجل قطع غيار بعد.</p>{% endfor %}
+                </div>
+            </article>
+
+            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-xl font-black">صور السيارة</h2>
+                <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                    {% for item in order.images.all %}
+                        {% if item.image %}<figure><img src="{{ item.image.url }}" alt="{{ item.caption|default:'صورة صيانة' }}" class="aspect-video w-full rounded-2xl object-cover"><figcaption class="mt-2 text-sm font-bold">{{ item.get_phase_display }}{% if item.caption %} · {{ item.caption }}{% endif %}</figcaption></figure>{% endif %}
+                    {% empty %}<p class="text-slate-400 sm:col-span-2">لا توجد صور مرفقة.</p>{% endfor %}
+                </div>
+            </article>
+        </section>
+
+        <aside class="space-y-6">
+            <article class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-lg font-black">عرض السعر</h2>
+                {% if quote %}
+                    <strong class="mt-4 block text-3xl font-black">{{ quote.amount }} ر.س</strong>
+                    <p class="mt-3 text-sm leading-6 text-slate-500">{{ quote.notes }}</p>
+                    <span class="mt-4 inline-block rounded-full bg-slate-100 px-3 py-1 text-sm font-bold">{{ quote.get_status_display }}</span>
+                    {% if quote.status == "pending" %}
+                        <div class="mt-5 grid grid-cols-2 gap-2">
+                            <form method="post" action="{% url 'maintenance:quote-response' quote.pk 'approve' %}">{% csrf_token %}<button class="w-full rounded-xl bg-teal-600 px-3 py-3 font-black text-white">موافقة</button></form>
+                            <form method="post" action="{% url 'maintenance:quote-response' quote.pk 'reject' %}">{% csrf_token %}<button class="w-full rounded-xl bg-rose-50 px-3 py-3 font-black text-rose-700">رفض</button></form>
+                        </div>
+                    {% endif %}
+                {% else %}<p class="mt-3 text-sm text-slate-400">لا يوجد عرض سعر بعد.</p>{% endif %}
+            </article>
+            {% if invoice %}
+                <article class="rounded-3xl bg-slate-950 p-6 text-white">
+                    <h2 class="text-lg font-black">الفاتورة</h2>
+                    <strong class="mt-4 block text-3xl font-black">{{ invoice.total }} ر.س</strong>
+                    <span class="mt-3 block text-sm text-slate-400">{{ invoice.get_status_display }}</span>
+                    <a href="{% url 'billing:invoice-detail' invoice.pk %}" class="mt-5 block rounded-xl bg-white px-4 py-3 text-center font-black text-slate-950">عرض الفاتورة</a>
+                </article>
+            {% endif %}
+        </aside>
+    </div>
+    <script>
+        (() => {
+            const badge = document.getElementById("liveOrderStatus");
+            const refreshStatus = async () => {
+                if (document.hidden) return;
+                try {
+                    const response = await fetch(badge.dataset.statusUrl, {
+                        headers: {"X-Requested-With": "XMLHttpRequest"}
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        badge.textContent = data.status_display;
+                    }
+                } catch (_) {
+                    // يبقى آخر وضع معروف ظاهرًا عند انقطاع الشبكة.
+                }
+            };
+            window.setInterval(refreshStatus, 15000);
+        })();
+    </script>
+{% endblock %}

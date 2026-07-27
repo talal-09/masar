@@ -1,0 +1,89 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}بوابة العميل{% endblock %} | مَسَار</title>
+    <link rel="icon" href="{% static 'images/masar_logo.png' %}?v=3" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --font-sans: "Tajawal", sans-serif;
+            --color-teal-50: #f0f6f5; --color-teal-100: #dceae8;
+            --color-teal-200: #b9d3d0; --color-teal-500: #146b72;
+            --color-teal-600: #0b5660; --color-teal-700: #073f49;
+            --color-teal-800: #063640; --color-teal-950: #03272e;
+            --color-cyan-600: #ad8f50;
+            --color-slate-50: #faf8f2; --color-slate-100: #f2eee4;
+            --color-slate-200: #e3dccd; --color-slate-900: #0a3942;
+            --color-slate-950: #052f38;
+        }
+        @layer base { body { @apply bg-[#faf8f2] font-sans antialiased; } }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900">
+    <header class="fixed inset-x-0 top-0 z-40 border-b border-[#ded4c1] bg-[#fffdf8]/95 shadow-sm backdrop-blur-xl">
+        <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-8">
+            <a href="{% url 'home' %}" class="flex h-14 w-36 items-center justify-center overflow-hidden sm:h-16 sm:w-48" aria-label="العودة إلى واجهة الموقع">
+                <img src="{% static 'images/masar_logo.png' %}?v=3" alt="شعار مَسَار — نظام إدارة صيانة السيارات" width="192" height="96" class="h-full w-full scale-[1.45] object-cover">
+            </a>
+            <nav class="hidden items-center gap-1 lg:flex">
+                <a href="{% url 'customers:vehicle-list' %}" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {% if request.resolver_match.namespace == 'customers' and 'vehicle' in request.resolver_match.url_name %}bg-teal-50 text-teal-700{% else %}hover:bg-slate-100{% endif %}">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none"><path d="m5 16-1 3m15-3 1 3M4 14l2-6h12l2 6v4H4v-4Zm3 1h.01M17 15h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>سياراتي</span>
+                </a>
+                <a href="{% url 'maintenance:order-list' %}" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {% if request.resolver_match.namespace == 'maintenance' and request.resolver_match.url_name != 'notifications' and request.resolver_match.url_name != 'notification-read' %}bg-teal-50 text-teal-700{% else %}hover:bg-slate-100{% endif %}">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none"><path d="m14.5 6.5 3-3 3 3-3 3m-4.5-2L5 15.5V19h3.5l8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>الصيانة</span>
+                </a>
+                <a href="{% url 'billing:invoice-list' %}" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {% if request.resolver_match.namespace == 'billing' %}bg-teal-50 text-teal-700{% else %}hover:bg-slate-100{% endif %}">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>الفواتير</span>
+                </a>
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.namespace == 'customers' and 'vehicle' not in request.resolver_match.url_name %}bg-teal-50 text-teal-700{% else %}hover:bg-slate-100{% endif %}">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="2"/><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>حسابي</span>
+                </a>
+                <a href="{% url 'maintenance:notifications' %}" class="grid size-10 place-items-center rounded-xl hover:bg-slate-100" aria-label="الإشعارات">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none"><path d="M6 17h12l-1.5-2.5V10a4.5 4.5 0 0 0-9 0v4.5L6 17Zm4 3h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+            </nav>
+            <div class="flex items-center gap-2">
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button class="rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white shadow-md shadow-teal-950/10 hover:bg-[#9d7f43] sm:px-4 sm:py-2.5 sm:text-sm">خروج</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <nav class="fixed inset-x-0 top-16 z-30 border-b border-[#ded4c1] bg-[#fffdf8]/95 px-2 py-1 shadow-sm backdrop-blur-xl sm:top-20 lg:hidden" aria-label="التنقل العلوي السريع">
+        <div class="mx-auto grid max-w-md grid-cols-4">
+            <a href="{% url 'customers:vehicle-list' %}" class="flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold {% if request.resolver_match.namespace == 'customers' and 'vehicle' in request.resolver_match.url_name %}bg-teal-50 text-teal-700{% else %}text-slate-500{% endif %}"><svg class="size-5" viewBox="0 0 24 24" fill="none"><path d="m5 16-1 3m15-3 1 3M4 14l2-6h12l2 6v4H4v-4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>سياراتي</span></a>
+            <a href="{% url 'maintenance:order-list' %}" class="flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold {% if request.resolver_match.namespace == 'maintenance' and request.resolver_match.url_name != 'notifications' and request.resolver_match.url_name != 'notification-read' %}bg-teal-50 text-teal-700{% else %}text-slate-500{% endif %}"><svg class="size-5" viewBox="0 0 24 24" fill="none"><path d="m14.5 6.5 3-3 3 3-3 3m-4.5-2L5 15.5V19h3.5l8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>الصيانة</span></a>
+            <a href="{% url 'billing:invoice-list' %}" class="flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold {% if request.resolver_match.namespace == 'billing' %}bg-teal-50 text-teal-700{% else %}text-slate-500{% endif %}"><svg class="size-5" viewBox="0 0 24 24" fill="none"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>الفواتير</span></a>
+            <a href="{% url 'dashboard' %}" class="flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.namespace == 'customers' and 'vehicle' not in request.resolver_match.url_name %}bg-teal-50 text-teal-700{% else %}text-slate-500{% endif %}"><svg class="size-5" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="2"/><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>حسابي</span></a>
+        </div>
+    </nav>
+
+    {% if messages %}
+        <div class="mx-auto mt-32 max-w-7xl space-y-2 px-5 pt-4 sm:mt-36 sm:px-8 lg:mt-20">
+            {% for message in messages %}
+                <div class="rounded-2xl border border-[#d8c18d] bg-[#fff8e8] px-5 py-3 text-sm font-bold text-[#70572b]">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <main class="mx-auto max-w-7xl px-4 pb-12 pt-36 sm:px-8 sm:pb-16 sm:pt-40 lg:pb-14 lg:pt-28">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="hidden border-t border-[#ded4c1] bg-[#fffdf8] lg:block">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-8 py-6 text-sm text-slate-500">
+            <span>© {% now "Y" %} مَسَار لإدارة صيانة السيارات</span>
+            <div class="flex gap-5"><a href="{% url 'branches' %}" class="hover:text-teal-700">الفروع</a><a href="{% url 'contact' %}" class="hover:text-teal-700">تواصل معنا</a></div>
+        </div>
+    </footer>
+
+</body>
+</html>

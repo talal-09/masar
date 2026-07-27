@@ -1,0 +1,69 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#082f35">
+    <title>{{ page_title|default:"لوحة الإدارة" }} | مَسَار</title>
+    <link rel="icon" href="{% static 'images/masar_logo.png' %}" type="image/png">
+    <link rel="stylesheet" href="{% static 'backoffice/app.css' %}">
+</head>
+<body>
+    <div class="bo-shell">
+        <aside class="bo-sidebar" id="bo-sidebar">
+            <div class="bo-brand">
+                <a href="{% url 'backoffice:dashboard' %}">
+                    <span class="bo-brand-mark">م</span>
+                    <span><strong>مَسَار</strong><small>إدارة المنصة</small></span>
+                </a>
+                <button class="bo-icon-button bo-close" type="button" data-sidebar-close aria-label="إغلاق القائمة">×</button>
+            </div>
+            <nav class="bo-nav" aria-label="القائمة الإدارية">
+                <a href="{% url 'backoffice:dashboard' %}" class="bo-nav-link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}">
+                    <span>⌘</span><strong>مركز القيادة</strong>
+                </a>
+                {% for section, resources in management_navigation.items %}
+                    <p class="bo-nav-label">{{ section }}</p>
+                    {% for item in resources %}
+                        <a href="{% url 'backoffice:resource-list' item.slug %}" class="bo-nav-link {% if resource.slug == item.slug %}is-active{% endif %}">
+                            <span>{{ item.icon }}</span><strong>{{ item.title }}</strong>
+                        </a>
+                    {% endfor %}
+                {% endfor %}
+            </nav>
+            <div class="bo-user-card">
+                <span class="bo-avatar">{{ request.user.get_full_name|default:request.user.username|slice:":1" }}</span>
+                <span class="bo-user-copy">
+                    <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                    <small>{% if request.user.is_superuser %}مدير النظام{% elif management_employee %}{{ management_employee.get_role_display }} · {{ management_employee.branch.name }}{% endif %}</small>
+                </span>
+                <form method="post" action="{% url 'backoffice:logout' %}">
+                    {% csrf_token %}
+                    <button class="bo-icon-button" title="تسجيل الخروج" aria-label="تسجيل الخروج">↪</button>
+                </form>
+            </div>
+        </aside>
+        <button class="bo-overlay" type="button" data-sidebar-close aria-label="إغلاق القائمة"></button>
+        <main class="bo-main">
+            <header class="bo-topbar">
+                <button class="bo-icon-button bo-menu" type="button" data-sidebar-open aria-label="فتح القائمة">☰</button>
+                <div>
+                    <p>لوحة إدارة المنصة</p>
+                    <h1>{{ page_title }}</h1>
+                </div>
+                <div class="bo-top-actions">
+                    <span class="bo-live"><i></i> النظام يعمل</span>
+                </div>
+            </header>
+            {% if messages %}
+                <div class="bo-messages">
+                    {% for message in messages %}<div class="bo-alert {{ message.tags }}">{{ message }}</div>{% endfor %}
+                </div>
+            {% endif %}
+            <div class="bo-content">{% block content %}{% endblock %}</div>
+        </main>
+    </div>
+    <script src="{% static 'backoffice/app.js' %}"></script>
+</body>
+</html>

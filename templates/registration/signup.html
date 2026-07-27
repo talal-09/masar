@@ -1,0 +1,26 @@
+{% extends "registration/auth_base.html" %}
+
+{% block title %}إنشاء حساب{% endblock %}
+{% block heading %}أنشئ حسابك{% endblock %}
+{% block description %}ابدأ استخدام مَسَار بخطوات بسيطة وآمنة.{% endblock %}
+
+{% block content %}
+    <form method="post" class="mt-8 space-y-5" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}" class="text-sm font-black text-slate-700">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<div class="mt-2 text-xs leading-5 text-slate-400">{{ field.help_text|safe }}</div>{% endif %}
+                {% for error in field.errors %}<p class="mt-2 text-xs font-bold text-rose-600">{{ error }}</p>{% endfor %}
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="w-full rounded-2xl bg-slate-950 px-6 py-4 font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-teal-700">إنشاء الحساب</button>
+    </form>
+
+    <p class="mt-7 text-center text-sm text-slate-500">
+        لديك حساب بالفعل؟
+        <a href="{% url 'login' %}" class="font-black text-teal-700 hover:text-teal-600">سجّل الدخول</a>
+    </p>
+{% endblock %}

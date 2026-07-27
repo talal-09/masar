@@ -1,0 +1,21 @@
+{% extends "portal/base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+    <div class="mx-auto max-w-2xl">
+        <a href="javascript:history.back()" class="mb-5 inline-flex items-center gap-2 text-sm font-black text-slate-500 transition hover:text-teal-700"><span>→</span> رجوع</a>
+        <h1 class="text-3xl font-black">{{ page_title }}</h1>
+        {% if page_description %}<p class="mt-2 text-slate-500">{{ page_description }}</p>{% endif %}
+        <form method="post" class="mt-8 space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" novalidate>
+            {% csrf_token %}
+            {% for field in form %}
+                <div>
+                    <label class="text-sm font-black text-slate-700" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="mt-2 text-xs leading-5 text-slate-400">{{ field.help_text|safe }}</div>{% endif %}
+                    {% for error in field.errors %}<p class="mt-2 text-sm font-bold text-rose-600">{{ error }}</p>{% endfor %}
+                </div>
+            {% endfor %}
+            <button class="min-h-12 w-full rounded-xl bg-slate-950 px-5 py-3.5 font-black text-white shadow-lg shadow-teal-950/10 hover:bg-[#9d7f43]">{{ submit_label|default:"حفظ" }}</button>
+        </form>
+    </div>
+{% endblock %}

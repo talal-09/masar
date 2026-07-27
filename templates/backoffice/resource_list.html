@@ -1,0 +1,41 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<section class="bo-page-actions">
+    <form class="bo-search" method="get">
+        <span>⌕</span><input type="search" name="q" value="{{ query }}" placeholder="ابحث داخل {{ resource.title }}...">
+        {% if query %}<a href="{% url 'backoffice:resource-list' resource.slug %}">مسح</a>{% endif %}
+    </form>
+    {% if can_add %}<a class="bo-primary-button" href="{% url 'backoffice:resource-add' resource.slug %}">+ إضافة {{ resource.singular }}</a>{% endif %}
+</section>
+<section class="bo-card">
+    <div class="bo-card-head">
+        <div><p class="bo-eyebrow">{{ resource.section }}</p><h3>{{ page.paginator.count }} سجل</h3></div>
+        <span class="bo-muted">صفحة {{ page.number }} من {{ page.paginator.num_pages }}</span>
+    </div>
+    <div class="bo-table-wrap">
+        <table>
+            <thead><tr>{% for field in resource.list_fields %}<th>{% field_label resource field %}</th>{% endfor %}<th>الإجراءات</th></tr></thead>
+            <tbody>
+            {% for item in page %}
+                <tr>
+                    {% for field in resource.list_fields %}<td>{% field_value item field %}</td>{% endfor %}
+                    <td class="bo-row-actions">
+                        {% if request.user|can_change:resource and not resource.readonly %}<a href="{% url 'backoffice:resource-edit' resource.slug item.pk %}">تعديل</a>{% endif %}
+                        {% if request.user|can_delete:resource and not resource.readonly %}<a class="danger" href="{% url 'backoffice:resource-delete' resource.slug item.pk %}">حذف</a>{% endif %}
+                        {% if resource.readonly %}<span class="bo-muted">للعرض</span>{% endif %}
+                    </td>
+                </tr>
+            {% empty %}<tr><td colspan="20" class="bo-empty">لا توجد نتائج مطابقة.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page.paginator.num_pages > 1 %}
+        <nav class="bo-pagination">
+            {% if page.has_previous %}<a href="?q={{ query }}&page={{ page.previous_page_number }}">السابق</a>{% endif %}
+            <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
+            {% if page.has_next %}<a href="?q={{ query }}&page={{ page.next_page_number }}">التالي</a>{% endif %}
+        </nav>
+    {% endif %}
+</section>
+{% endblock %}

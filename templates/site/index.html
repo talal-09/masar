@@ -1,0 +1,202 @@
+{% load static %}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ورشة مَسَار لصيانة السيارات — احجز موعدك وتابع صيانة سيارتك بكل وضوح.">
+    <title>مَسَار | صيانة سيارتك بثقة</title>
+    <link rel="icon" href="{% static 'images/masar_logo.png' %}?v=3" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --font-sans: "Tajawal", sans-serif;
+            --color-teal-50: #f0f6f5; --color-teal-100: #dceae8;
+            --color-teal-200: #b9d3d0; --color-teal-500: #146b72;
+            --color-teal-600: #0b5660; --color-teal-700: #073f49;
+            --color-teal-800: #063640; --color-teal-950: #03272e;
+            --color-cyan-600: #ad8f50;
+            --color-slate-50: #faf8f2; --color-slate-100: #f2eee4;
+            --color-slate-200: #e3dccd; --color-slate-900: #0a3942;
+            --color-slate-950: #052f38;
+        }
+        @layer base {
+            html { scroll-behavior: smooth; }
+            body { @apply overflow-x-hidden bg-[#faf8f2] font-sans text-slate-900 antialiased; }
+            ::selection { @apply bg-[#d8c18d] text-teal-950; }
+        }
+        @layer utilities {
+            .warm-mesh {
+                background:
+                    radial-gradient(circle at 15% 20%, rgba(11,86,96,.16), transparent 28%),
+                    radial-gradient(circle at 86% 14%, rgba(184,154,92,.2), transparent 26%),
+                    linear-gradient(180deg, #fffdf8 0%, #faf8f2 100%);
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include "site/header.html" %}
+
+    <main>
+        <section id="home" class="warm-mesh relative overflow-hidden pb-20 pt-32 sm:pb-28 sm:pt-40">
+            <div class="mx-auto grid max-w-7xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:px-10">
+                <div>
+                    <span class="inline-flex items-center gap-2 rounded-full border border-[#d8c18d] bg-[#fff8e8] px-4 py-2 text-sm font-black text-[#7f6535]">
+                        <span class="size-2 rounded-full bg-[#b89a5c]"></span>
+                        عناية متكاملة بسيارتك
+                    </span>
+                    <h1 class="mt-7 max-w-3xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-6xl">
+                        صيانة سيارتك
+                        <span class="block text-[#ad8f50]">أوضح، أسرع، وأضمن.</span>
+                    </h1>
+                    <p class="mt-6 max-w-2xl text-lg leading-9 text-slate-600">
+                        في ورشة مَسَار نفحص سيارتك بعناية، نوضح لك العمل والتكلفة، ونبقيك على اطلاع حتى تصبح جاهزة للاستلام.
+                    </p>
+                    <div class="mt-9 flex flex-col gap-3 sm:flex-row">
+                        {% if user.is_authenticated and not user.is_staff %}
+                            <a href="{% url 'maintenance:order-create' %}" class="inline-flex min-h-14 items-center justify-center rounded-2xl bg-slate-950 px-8 font-black text-white shadow-xl shadow-teal-950/20 transition hover:-translate-y-1 hover:bg-[#9d7f43]">احجز موعد صيانة</a>
+                            <a href="{% url 'maintenance:order-list' %}" class="inline-flex min-h-14 items-center justify-center rounded-2xl border border-[#d8c18d] bg-[#fffdf8] px-8 font-black text-slate-950 transition hover:-translate-y-1">تابع صيانة سيارتك</a>
+                        {% else %}
+                            <a href="{% url 'login' %}?next={% url 'maintenance:order-create' %}" class="inline-flex min-h-14 items-center justify-center rounded-2xl bg-slate-950 px-8 font-black text-white shadow-xl shadow-teal-950/20 transition hover:-translate-y-1 hover:bg-[#9d7f43]">احجز موعد صيانة</a>
+                            <a href="{% url 'signup' %}" class="inline-flex min-h-14 items-center justify-center rounded-2xl border border-[#d8c18d] bg-[#fffdf8] px-8 font-black text-slate-950 transition hover:-translate-y-1">افتح حسابك</a>
+                        {% endif %}
+                    </div>
+                    <div class="mt-9 flex flex-wrap gap-x-7 gap-y-3 text-sm font-bold text-slate-500">
+                        <span>✓ متابعة حالة الصيانة</span>
+                        <span>✓ عرض سعر واضح</span>
+                        <span>✓ سجل كامل لسيارتك</span>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <div class="rounded-[2.5rem] border border-[#ded4c1] bg-[#fffdf8] p-5 shadow-2xl shadow-teal-950/10 sm:p-8">
+                        <div class="flex h-72 items-center justify-center overflow-hidden rounded-[2rem] bg-[#f4efe4] sm:h-96">
+                            <img src="{% static 'images/masar_logo.png' %}?v=3" alt="ورشة مَسَار لصيانة السيارات" class="h-full w-full scale-[1.12] object-cover">
+                        </div>
+                        <div class="mt-5 grid grid-cols-3 gap-3 text-center">
+                            <div class="rounded-2xl bg-teal-50 p-4"><strong class="block text-xl text-teal-700">فحص</strong><span class="text-xs text-slate-500">دقيق</span></div>
+                            <div class="rounded-2xl bg-[#fff8e8] p-4"><strong class="block text-xl text-[#9d7f43]">سعر</strong><span class="text-xs text-slate-500">واضح</span></div>
+                            <div class="rounded-2xl bg-slate-100 p-4"><strong class="block text-xl text-slate-950">متابعة</strong><span class="text-xs text-slate-500">مستمرة</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {% if messages %}
+            <div class="mx-auto max-w-7xl px-5 pt-8 sm:px-8 lg:px-10">
+                {% for message in messages %}<div class="rounded-2xl border border-[#d8c18d] bg-[#fff8e8] px-5 py-4 font-bold text-[#70572b]">{{ message }}</div>{% endfor %}
+            </div>
+        {% endif %}
+
+        <section id="services" class="py-20 sm:py-28">
+            <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+                <div class="max-w-2xl">
+                    <span class="text-sm font-black text-[#9d7f43]">خدمات الورشة</span>
+                    <h2 class="mt-3 text-3xl font-black text-slate-950 sm:text-5xl">كل ما تحتاجه سيارتك في مكان واحد</h2>
+                    <p class="mt-5 leading-8 text-slate-500">الخدمات المتاحة فعليًا لدى المركز وأسعارها التقديرية.</p>
+                </div>
+                <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {% for service in services %}
+                        <article class="rounded-3xl border border-[#ded4c1] bg-[#fffdf8] p-6 shadow-lg shadow-teal-950/5 transition hover:-translate-y-1 hover:border-[#d8c18d]">
+                            <div class="flex items-start justify-between gap-4">
+                                <span class="grid size-12 place-items-center rounded-2xl bg-teal-50 text-xl text-teal-700">⚙</span>
+                                <strong class="rounded-full bg-[#fff8e8] px-3 py-1 text-sm text-[#7f6535]">{{ service.price }} ر.س</strong>
+                            </div>
+                            <h3 class="mt-5 text-xl font-black">{{ service.name }}</h3>
+                            <p class="mt-2 text-sm font-bold text-[#9d7f43]">{{ service.category.name }}</p>
+                            <p class="mt-3 text-sm text-slate-500">المدة التقديرية: {{ service.estimated_time }} دقيقة</p>
+                        </article>
+                    {% empty %}
+                        <div class="rounded-3xl border border-dashed border-[#d8c18d] bg-[#fffdf8] p-10 text-center text-slate-500 sm:col-span-2 lg:col-span-3">ستظهر خدمات الورشة هنا عند إضافتها من الإدارة.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-[#052f38] py-20 text-white sm:py-24">
+            <div class="mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-4 lg:px-10">
+                <div><strong class="text-4xl font-black text-[#d8bd82]">01</strong><h3 class="mt-3 text-xl font-black">احجز</h3><p class="mt-2 text-sm leading-7 text-teal-100">اختر سيارتك والفرع والموعد.</p></div>
+                <div><strong class="text-4xl font-black text-[#d8bd82]">02</strong><h3 class="mt-3 text-xl font-black">نفحص</h3><p class="mt-2 text-sm leading-7 text-teal-100">نفحص السيارة ونوضح المطلوب.</p></div>
+                <div><strong class="text-4xl font-black text-[#d8bd82]">03</strong><h3 class="mt-3 text-xl font-black">وافق</h3><p class="mt-2 text-sm leading-7 text-teal-100">راجع عرض السعر واتخذ قرارك.</p></div>
+                <div><strong class="text-4xl font-black text-[#d8bd82]">04</strong><h3 class="mt-3 text-xl font-black">تابع</h3><p class="mt-2 text-sm leading-7 text-teal-100">تابع الحالة حتى الاستلام.</p></div>
+            </div>
+        </section>
+
+        <section id="reviews" class="py-20 sm:py-28">
+            <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+                <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                    <div><span class="text-sm font-black text-[#9d7f43]">آراء عملائنا</span><h2 class="mt-3 text-3xl font-black sm:text-5xl">تجارب حقيقية مع الورشة</h2></div>
+                    <div class="rounded-2xl bg-[#fff8e8] px-5 py-3 text-[#7f6535]"><strong class="text-2xl">{{ average_rating|floatformat:1|default:"—" }}</strong><span class="mr-2">من 5 · {{ reviews_count }} تقييم</span></div>
+                </div>
+                <div class="mt-10 grid gap-5 lg:grid-cols-3">
+                    {% for review in reviews %}
+                        <blockquote class="rounded-3xl border border-[#ded4c1] bg-[#fffdf8] p-6 shadow-lg shadow-teal-950/5">
+                            <div class="text-lg tracking-widest text-[#b89a5c]">★★★★★</div>
+                            <p class="mt-4 leading-8 text-slate-600">“{{ review.comment }}”</p>
+                            <footer class="mt-5 flex items-center justify-between border-t border-[#eee4cd] pt-4"><strong>{{ review.customer.full_name }}</strong><span class="text-sm font-black text-[#9d7f43]">{{ review.rating }}/5</span></footer>
+                        </blockquote>
+                    {% empty %}
+                        <div class="rounded-3xl border border-dashed border-[#d8c18d] bg-[#fffdf8] p-10 text-center text-slate-500 lg:col-span-3">كن أول من يشارك تجربته مع ورشة مَسَار.</div>
+                    {% endfor %}
+                </div>
+
+                {% if user.is_authenticated and not user.is_staff %}
+                    <form method="post" class="mx-auto mt-12 max-w-2xl rounded-3xl border border-[#ded4c1] bg-[#fffdf8] p-6 shadow-xl shadow-teal-950/5 sm:p-8">
+                        {% csrf_token %}
+                        <h3 class="text-2xl font-black">{% if customer_review %}حدّث تقييمك{% else %}قيّم تجربتك{% endif %}</h3>
+                        <p class="mt-2 text-sm text-slate-500">يُنشر التقييم بعد مراجعته لحماية خصوصية العملاء وجودة المحتوى.</p>
+                        <div class="mt-6 grid gap-5">
+                            {% for field in review_form %}<div><label for="{{ field.id_for_label }}" class="text-sm font-black">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="mt-2 text-sm font-bold text-rose-600">{{ error }}</p>{% endfor %}</div>{% endfor %}
+                        </div>
+                        <button class="mt-6 w-full rounded-2xl bg-slate-950 px-6 py-4 font-black text-white hover:bg-[#9d7f43]">إرسال التقييم</button>
+                    </form>
+                {% endif %}
+            </div>
+        </section>
+
+        <section id="branches" class="bg-[#f2eee4] py-20 sm:py-28">
+            <div class="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+                <h2 class="text-3xl font-black sm:text-5xl">اختر الفرع الأقرب لك</h2>
+                <div class="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                    {% for branch in branches %}
+                        <article class="rounded-3xl border border-[#ded4c1] bg-[#fffdf8] p-6">
+                            <h3 class="text-xl font-black">{{ branch.name }}</h3>
+                            <p class="mt-4 leading-7 text-slate-500">{{ branch.address }}</p>
+                            <p class="mt-3 text-sm text-slate-400">{{ branch.business_hours }}</p>
+                            <a href="tel:{{ branch.phone }}" dir="ltr" class="mt-5 block font-black text-teal-700">{{ branch.phone }}</a>
+                        </article>
+                    {% empty %}<p class="text-slate-500">لا توجد فروع متاحة حاليًا.</p>{% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="px-5 py-20 sm:px-8 sm:py-28">
+            <div class="mx-auto max-w-5xl rounded-[2.5rem] bg-[#073f49] px-6 py-14 text-center text-white shadow-2xl shadow-teal-950/20 sm:px-12">
+                <span class="font-black text-[#d8bd82]">سيارتك تستحق عناية أفضل</span>
+                <h2 class="mt-4 text-3xl font-black sm:text-5xl">احجز موعدك الآن</h2>
+                <p class="mx-auto mt-5 max-w-2xl leading-8 text-teal-100">اختر الفرع والموعد، وسيتابع فريق مَسَار طلبك من الفحص حتى الاستلام.</p>
+                <a href="{% if user.is_authenticated and not user.is_staff %}{% url 'maintenance:order-create' %}{% else %}{% url 'login' %}?next={% url 'maintenance:order-create' %}{% endif %}" class="mt-8 inline-flex min-h-14 items-center justify-center rounded-2xl bg-[#d8bd82] px-9 font-black text-[#052f38] transition hover:-translate-y-1 hover:bg-white">احجز موعد صيانة</a>
+            </div>
+        </section>
+    </main>
+
+    {% include "site/footer.html" %}
+    <script>
+        const menuToggle = document.getElementById("menuToggle");
+        const mobileNavigation = document.getElementById("mobileNavigation");
+        menuToggle?.addEventListener("click", () => {
+            const open = menuToggle.getAttribute("aria-expanded") === "true";
+            menuToggle.setAttribute("aria-expanded", String(!open));
+            mobileNavigation.classList.toggle("hidden");
+        });
+        document.querySelectorAll(".mobile-link").forEach(link => link.addEventListener("click", () => mobileNavigation?.classList.add("hidden")));
+        const currentYear = document.getElementById("currentYear");
+        if (currentYear) currentYear.textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
