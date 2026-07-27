@@ -139,8 +139,13 @@ WSGI_APPLICATION = "myproject.wsgi.application"
 # ==========================
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+DB_HOST = os.getenv("DB_HOST", "").strip()
+DB_PORT = os.getenv("DB_PORT", "5432").strip()
+DB_NAME = os.getenv("DB_NAME", "").strip()
+DB_USER = os.getenv("DB_USER", "").strip()
+DB_PASSWORD = os.getenv("DB_PASSWORD", "").strip()
 
-if DATABASE_URL:
+if DATABASE_URL and not DEBUG:
     DATABASES = {
         "default": dj_database_url.config(
             default=DATABASE_URL,
@@ -149,8 +154,26 @@ if DATABASE_URL:
             ssl_require=not DEBUG,
         )
     }
+elif not DEBUG and all((DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "HOST": DB_HOST,
+            "PORT": DB_PORT,
+            "NAME": DB_NAME,
+            "USER": DB_USER,
+            "PASSWORD": DB_PASSWORD,
+            "CONN_MAX_AGE": 600,
+            "CONN_HEALTH_CHECKS": True,
+            "OPTIONS": (
+                {"sslmode": "require"}
+                if not DEBUG
+                else {}
+            ),
+        }
+    }
 else:
-    # قاعدة التطوير المحلية
+    # قاعدة التطوير المحلية عند عدم اكتمال بيانات PostgreSQL
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
