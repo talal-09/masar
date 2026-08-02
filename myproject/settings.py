@@ -28,12 +28,20 @@ def env_list(name: str, default: str = "") -> list[str]:
 # الإعدادات الأساسية
 # ==========================
 
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-local-development-only",
-)
+DEBUG = os.getenv(
+    "DJANGO_DEBUG",
+    "False",
+).strip().lower() == "true"
 
-DEBUG = os.getenv("DJANGO_DEBUG", "True").strip().lower() == "true"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "").strip()
+
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-local-development-only"
+    else:
+        raise RuntimeError(
+            "DJANGO_SECRET_KEY is required in production"
+        )
 
 ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
@@ -138,42 +146,32 @@ WSGI_APPLICATION = "myproject.wsgi.application"
 # قاعدة البيانات
 # ==========================
 
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-DB_HOST = os.getenv("DB_HOST", "").strip()
-DB_PORT = os.getenv("DB_PORT", "5432").strip()
-DB_NAME = os.getenv("DB_NAME", "").strip()
-DB_USER = os.getenv("DB_USER", "").strip()
-DB_PASSWORD = os.getenv("DB_PASSWORD", "").strip()
+USE_TARGET_DATABASE = os.getenv(
+    "USE_TARGET_DATABASE",
+    "0",
+).strip() == "1"
 
-if DATABASE_URL and not DEBUG:
+TARGET_DATABASE_URL = os.getenv(
+    "TARGET_DATABASE_URL",
+    "",
+).strip()
+
+if USE_TARGET_DATABASE:
+    if not TARGET_DATABASE_URL:
+        raise RuntimeError(
+            "TARGET_DATABASE_URL is required when "
+            "USE_TARGET_DATABASE=1"
+        )
+
     DATABASES = {
-        "default": dj_database_url.config(
-            default=DATABASE_URL,
+        "default": dj_database_url.parse(
+            TARGET_DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
-            ssl_require=not DEBUG,
+            ssl_require=True,
         )
     }
-elif not DEBUG and all((DB_HOST, DB_NAME, DB_USER, DB_PASSWORD)):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "HOST": DB_HOST,
-            "PORT": DB_PORT,
-            "NAME": DB_NAME,
-            "USER": DB_USER,
-            "PASSWORD": DB_PASSWORD,
-            "CONN_MAX_AGE": 600,
-            "CONN_HEALTH_CHECKS": True,
-            "OPTIONS": (
-                {"sslmode": "require"}
-                if not DEBUG
-                else {}
-            ),
-        }
-    }
 else:
-    # قاعدة التطوير المحلية عند عدم اكتمال بيانات PostgreSQL
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -236,9 +234,18 @@ USE_TZ = True
 # ==========================
 
 CLOUDINARY_STORAGE = {
-    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", "").strip(),
-    "API_KEY": os.getenv("CLOUDINARY_API_KEY", "").strip(),
-    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", "").strip(),
+    "CLOUD_NAME": os.getenv(
+        "CLOUDINARY_CLOUD_NAME",
+        "",
+    ).strip(),
+    "API_KEY": os.getenv(
+        "CLOUDINARY_API_KEY",
+        "",
+    ).strip(),
+    "API_SECRET": os.getenv(
+        "CLOUDINARY_API_SECRET",
+        "",
+    ).strip(),
     "SECURE": True,
 }
 
@@ -320,9 +327,10 @@ CSRF_COOKIE_SECURE = not DEBUG
 
 SECURE_SSL_REDIRECT = not DEBUG
 
-SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
-SECURE_HSTS_PRELOAD = not DEBUG
+# قيمة أولية آمنة، ويمكن رفعها لاحقًا بعد التأكد من HTTPS
+SECURE_HSTS_SECONDS = 3600 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
