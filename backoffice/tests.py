@@ -126,3 +126,32 @@ class BackofficeAccessTests(TestCase):
         employee = Employee.objects.get(user__username="new-technician")
         self.assertTrue(employee.user.is_staff)
         self.assertEqual(employee.branch, self.branch_one)
+
+    def test_management_language_switch_persists_and_is_not_mixed(self):
+        self.client.force_login(self.manager_user)
+        response = self.client.post(
+            reverse("set_language"),
+            {"language": "en", "next": reverse("backoffice:dashboard")},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Platform management")
+        self.assertContains(response, "Active orders")
+        self.assertContains(response, "Inventory")
+        self.assertNotContains(response, "مركز القيادة")
+        self.assertNotContains(response, "أوامر نشطة")
+
+        next_response = self.client.get(
+            reverse("backoffice:resource-list", args=["vehicles"])
+        )
+        self.assertContains(next_response, "Search Vehicles")
+        self.assertContains(next_response, "Actions")
+        self.assertNotContains(next_response, "الإجراءات")
+
+        arabic = self.client.post(
+            reverse("set_language"),
+            {"language": "ar", "next": reverse("backoffice:dashboard")},
+            follow=True,
+        )
+        self.assertContains(arabic, "مركز القيادة")
+        self.assertNotContains(arabic, "Platform management")

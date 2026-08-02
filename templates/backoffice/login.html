@@ -1,47 +1,49 @@
-{% load static %}
+{% load static i18n %}
+{% get_current_language as LANGUAGE_CODE %}
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>دخول إدارة المنصة | مَسَار</title>
+    <title>{% if LANGUAGE_CODE == 'ar' %}دخول إدارة المنصة{% else %}Management sign in{% endif %} | MASAR</title>
     <link rel="icon" href="{% static 'images/logo.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'backoffice/app.css' %}">
 </head>
 <body class="bo-login-page">
+    <form class="bo-language bo-login-language" action="{% url 'set_language' %}" method="post">{% csrf_token %}<input name="next" type="hidden" value="{{ request.get_full_path }}"><button name="language" value="ar" type="submit" class="{% if LANGUAGE_CODE == 'ar' %}is-active{% endif %}">العربية</button><button name="language" value="en" type="submit" class="{% if LANGUAGE_CODE == 'en' %}is-active{% endif %}">English</button></form>
     <main class="bo-login-shell">
         <section class="bo-login-story">
             <div class="bo-login-brand"><img class="bo-login-logo" src="{% static 'images/logo.svg' %}" alt="نظام مسار لإدارة صيانة السيارات"></div>
             <div class="bo-story-copy">
-                <span class="bo-eyebrow">مركز التحكم التشغيلي</span>
-                <h1>كل تفاصيل مركزك،<br><em>في مساحة واحدة.</em></h1>
-                <p>راقب العمل، أدر الفريق، وتابع تجربة العميل من الاستقبال حتى التحصيل.</p>
+                <span class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}مركز التحكم التشغيلي{% else %}Operations control center{% endif %}</span>
+                <h1>{% if LANGUAGE_CODE == 'ar' %}كل تفاصيل مركزك،<br><em>في مساحة واحدة.</em>{% else %}Your entire service center,<br><em>in one place.</em>{% endif %}</h1>
+                <p>{% if LANGUAGE_CODE == 'ar' %}راقب العمل، أدر الفريق، وتابع تجربة العميل من الاستقبال حتى التحصيل.{% else %}Monitor operations, manage your team, and follow every customer journey from reception to payment.{% endif %}</p>
             </div>
             <div class="bo-story-grid">
-                <div><strong>تشغيل مباشر</strong><small>الصيانة والمواعيد والفنيون</small></div>
-                <div><strong>رؤية مالية</strong><small>الفواتير والمدفوعات والتحصيل</small></div>
-                <div><strong>مخزون مترابط</strong><small>القطع والكميات وحركة الاستخدام</small></div>
+                <div><strong>{% if LANGUAGE_CODE == 'ar' %}تشغيل مباشر{% else %}Live operations{% endif %}</strong><small>{% if LANGUAGE_CODE == 'ar' %}الصيانة والمواعيد والفنيون{% else %}Maintenance, appointments, and technicians{% endif %}</small></div>
+                <div><strong>{% if LANGUAGE_CODE == 'ar' %}رؤية مالية{% else %}Financial overview{% endif %}</strong><small>{% if LANGUAGE_CODE == 'ar' %}الفواتير والمدفوعات والتحصيل{% else %}Invoices, payments, and collection{% endif %}</small></div>
+                <div><strong>{% if LANGUAGE_CODE == 'ar' %}مخزون مترابط{% else %}Connected inventory{% endif %}</strong><small>{% if LANGUAGE_CODE == 'ar' %}القطع والكميات وحركة الاستخدام{% else %}Parts, quantities, and movements{% endif %}</small></div>
             </div>
         </section>
         <section class="bo-login-panel">
             <div class="bo-login-card">
                 <span class="bo-lock">⌾</span>
-                <p class="bo-eyebrow">بوابة فريق المركز</p>
-                <h2>مرحبًا بعودتك</h2>
-                <p class="bo-muted">استخدم حساب الموظف المصرح له لإدارة المنصة.</p>
+                <p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}بوابة فريق المركز{% else %}Service center team portal{% endif %}</p>
+                <h2>{% if LANGUAGE_CODE == 'ar' %}مرحبًا بعودتك{% else %}Welcome back{% endif %}</h2>
+                <p class="bo-muted">{% if LANGUAGE_CODE == 'ar' %}استخدم حساب الموظف المصرح له لإدارة المنصة.{% else %}Use an authorized employee account to manage the platform.{% endif %}</p>
                 <form method="post" class="bo-login-form">
                     {% csrf_token %}
                     {% if form.non_field_errors %}
                         <div class="bo-alert error">{{ form.non_field_errors|striptags }}</div>
                     {% endif %}
-                    <label for="{{ form.username.id_for_label }}">اسم المستخدم</label>
+                    <label for="{{ form.username.id_for_label }}">{% if LANGUAGE_CODE == 'ar' %}اسم المستخدم{% else %}Username{% endif %}</label>
                     {{ form.username }}
-                    <label for="{{ form.password.id_for_label }}">كلمة المرور</label>
+                    <label for="{{ form.password.id_for_label }}">{% if LANGUAGE_CODE == 'ar' %}كلمة المرور{% else %}Password{% endif %}</label>
                     {{ form.password }}
                     {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-                    <button class="bo-primary-button" type="submit">دخول لوحة الإدارة <span>←</span></button>
+                    <button class="bo-primary-button" type="submit">{% if LANGUAGE_CODE == 'ar' %}دخول لوحة الإدارة{% else %}Sign in to management{% endif %} <span>←</span></button>
                 </form>
-                <a href="{% url 'home' %}" class="bo-back-link">العودة إلى موقع العملاء</a>
+                <a href="{% url 'home' %}" class="bo-back-link">{% if LANGUAGE_CODE == 'ar' %}العودة إلى موقع العملاء{% else %}Back to customer website{% endif %}</a>
             </div>
         </section>
     </main>

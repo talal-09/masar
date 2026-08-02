@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
+from django.utils.translation import get_language
 
 from core.models import Employee
 
@@ -14,11 +15,21 @@ class ManagementAuthenticationForm(AuthenticationForm):
         "inactive": "هذا الحساب غير نشط.",
     }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if (get_language() or "ar").startswith("en"):
+            self.error_messages.update({
+                "invalid_login": "The username or password is incorrect.",
+                "inactive": "This account is inactive.",
+            })
+
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
         if not is_platform_manager(user):
             raise forms.ValidationError(
-                "هذا الحساب غير مصرح له باستخدام لوحة إدارة المنصة.",
+                "This account is not authorized to use platform management."
+                if (get_language() or "ar").startswith("en")
+                else "هذا الحساب غير مصرح له باستخدام لوحة إدارة المنصة.",
                 code="not_management_user",
             )
 
@@ -63,6 +74,16 @@ class EmployeeManagementForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.request_user = kwargs.pop("request_user", None)
         super().__init__(*args, **kwargs)
+        if (get_language() or "ar").startswith("en"):
+            labels = {
+                "username": "Username", "first_name": "First name",
+                "last_name": "Last name", "email": "Email", "password": "Password",
+            }
+            for name, label in labels.items():
+                self.fields[name].label = label
+            self.fields["password"].help_text = (
+                "Leave blank while editing to keep the current password."
+            )
         if self.instance.pk:
             self.fields["username"].initial = self.instance.user.username
             self.fields["first_name"].initial = self.instance.user.first_name

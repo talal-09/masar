@@ -1,11 +1,12 @@
-{% load static %}
+{% load static i18n backoffice_tags %}
+{% get_current_language as LANGUAGE_CODE %}
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#082f35">
-    <title>{{ page_title|default:"لوحة الإدارة" }} | مَسَار</title>
+    <title>{{ page_title|bo_tr|default:"Management" }} | MASAR</title>
     <link rel="icon" href="{% static 'images/logo.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'backoffice/app.css' %}">
 </head>
@@ -14,19 +15,19 @@
         <aside class="bo-sidebar" id="bo-sidebar">
             <div class="bo-brand">
                 <a href="{% url 'backoffice:dashboard' %}">
-                    <img class="bo-sidebar-logo" src="{% static 'images/logo.svg' %}" alt="نظام مسار لإدارة صيانة السيارات">
+                    <img class="bo-sidebar-logo" src="{% static 'images/logo.svg' %}" alt="{% if LANGUAGE_CODE == 'ar' %}نظام مسار لإدارة صيانة السيارات{% else %}Masar Vehicle Maintenance Management System{% endif %}">
                 </a>
-                <button class="bo-icon-button bo-close" type="button" data-sidebar-close aria-label="إغلاق القائمة">×</button>
+                <button class="bo-icon-button bo-close" type="button" data-sidebar-close aria-label="{% if LANGUAGE_CODE == 'ar' %}إغلاق القائمة{% else %}Close menu{% endif %}">×</button>
             </div>
-            <nav class="bo-nav" aria-label="القائمة الإدارية">
+            <nav class="bo-nav" aria-label="{% if LANGUAGE_CODE == 'ar' %}القائمة الإدارية{% else %}Management navigation{% endif %}">
                 <a href="{% url 'backoffice:dashboard' %}" class="bo-nav-link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}">
-                    <span>⌘</span><strong>مركز القيادة</strong>
+                    <span>⌘</span><strong>{% if LANGUAGE_CODE == 'ar' %}مركز القيادة{% else %}Dashboard{% endif %}</strong>
                 </a>
                 {% for section, resources in management_navigation.items %}
-                    <p class="bo-nav-label">{{ section }}</p>
+                    <p class="bo-nav-label">{{ section|bo_tr }}</p>
                     {% for item in resources %}
                         <a href="{% url 'backoffice:resource-list' item.slug %}" class="bo-nav-link {% if resource.slug == item.slug %}is-active{% endif %}">
-                            <span>{{ item.icon }}</span><strong>{{ item.title }}</strong>
+                            <span>{{ item.icon }}</span><strong>{{ item.title|bo_tr }}</strong>
                         </a>
                     {% endfor %}
                 {% endfor %}
@@ -35,24 +36,25 @@
                 <span class="bo-avatar">{{ request.user.get_full_name|default:request.user.username|slice:":1" }}</span>
                 <span class="bo-user-copy">
                     <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
-                    <small>{% if request.user.is_superuser %}مدير النظام{% elif management_employee %}{{ management_employee.get_role_display }} · {{ management_employee.branch.name }}{% endif %}</small>
+                    <small>{% if request.user.is_superuser %}{% if LANGUAGE_CODE == 'ar' %}مدير النظام{% else %}System administrator{% endif %}{% elif management_employee %}{{ management_employee.get_role_display|bo_tr }} · {{ management_employee.branch.name }}{% endif %}</small>
                 </span>
                 <form method="post" action="{% url 'backoffice:logout' %}">
                     {% csrf_token %}
-                    <button class="bo-icon-button" title="تسجيل الخروج" aria-label="تسجيل الخروج">↪</button>
+                    <button class="bo-icon-button" title="{% if LANGUAGE_CODE == 'ar' %}تسجيل الخروج{% else %}Sign out{% endif %}" aria-label="{% if LANGUAGE_CODE == 'ar' %}تسجيل الخروج{% else %}Sign out{% endif %}">↪</button>
                 </form>
             </div>
         </aside>
-        <button class="bo-overlay" type="button" data-sidebar-close aria-label="إغلاق القائمة"></button>
+        <button class="bo-overlay" type="button" data-sidebar-close aria-label="{% if LANGUAGE_CODE == 'ar' %}إغلاق القائمة{% else %}Close menu{% endif %}"></button>
         <main class="bo-main">
             <header class="bo-topbar">
-                <button class="bo-icon-button bo-menu" type="button" data-sidebar-open aria-label="فتح القائمة">☰</button>
+                <button class="bo-icon-button bo-menu" type="button" data-sidebar-open aria-label="{% if LANGUAGE_CODE == 'ar' %}فتح القائمة{% else %}Open menu{% endif %}">☰</button>
                 <div>
-                    <p>لوحة إدارة المنصة</p>
-                    <h1>{{ page_title }}</h1>
+                    <p>{% if LANGUAGE_CODE == 'ar' %}لوحة إدارة المنصة{% else %}Platform management{% endif %}</p>
+                    <h1>{{ page_title|bo_tr }}</h1>
                 </div>
                 <div class="bo-top-actions">
-                    <span class="bo-live"><i></i> النظام يعمل</span>
+                    <form class="bo-language" action="{% url 'set_language' %}" method="post">{% csrf_token %}<input name="next" type="hidden" value="{{ request.get_full_path }}"><button name="language" value="ar" type="submit" class="{% if LANGUAGE_CODE == 'ar' %}is-active{% endif %}">العربية</button><button name="language" value="en" type="submit" class="{% if LANGUAGE_CODE == 'en' %}is-active{% endif %}">English</button></form>
+                    <span class="bo-live"><i></i> {% if LANGUAGE_CODE == 'ar' %}النظام يعمل{% else %}System online{% endif %}</span>
                 </div>
             </header>
             {% if messages %}

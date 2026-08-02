@@ -1,4 +1,5 @@
 {% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
 {% block content %}
 <section class="bo-form-layout">
     <form method="post" enctype="multipart/form-data" class="bo-card bo-form-card">
@@ -7,7 +8,7 @@
         <div class="bo-form-grid">
             {% for field in form %}
                 <div class="{% if field.field.widget.input_type == 'checkbox' %}bo-check-field{% endif %}">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<b>*</b>{% endif %}</label>
+                    <label for="{{ field.id_for_label }}">{{ field.label|bo_tr }}{% if field.field.required %}<b>*</b>{% endif %}</label>
                     {{ field }}
                     {% if field.help_text %}<small>{{ field.help_text|safe }}</small>{% endif %}
                     {% for error in field.errors %}<span class="bo-field-error">{{ error }}</span>{% endfor %}
@@ -15,15 +16,14 @@
             {% endfor %}
         </div>
         <div class="bo-form-actions">
-            <button class="bo-primary-button" type="submit">حفظ التغييرات</button>
-            <a class="bo-ghost-button" href="{% url 'backoffice:resource-list' resource.slug %}">إلغاء</a>
+            <button class="bo-primary-button" type="submit">{% if LANGUAGE_CODE == 'ar' %}حفظ التغييرات{% else %}Save changes{% endif %}</button>
+            <a class="bo-ghost-button" href="{% url 'backoffice:resource-list' resource.slug %}">{% if LANGUAGE_CODE == 'ar' %}إلغاء{% else %}Cancel{% endif %}</a>
         </div>
     </form>
     <aside class="bo-card bo-form-help">
         <span>{{ resource.icon }}</span>
-        <h3>{{ resource.singular }}</h3>
-        <p>أدخل البيانات بعناية. يتم التحقق من جميع الحقول والعلاقات قبل الحفظ لحماية اتساق المنصة.</p>
-        <ul><li>الحقول المميزة بنجمة مطلوبة.</li><li>التغييرات تطبق مباشرة على المنصة.</li><li>الصلاحيات تحدد من يمكنه الوصول.</li></ul>
+        <h3>{{ resource.singular|bo_tr }}</h3>
+        {% if LANGUAGE_CODE == 'ar' %}<p>أدخل البيانات بعناية. يتم التحقق من جميع الحقول والعلاقات قبل الحفظ لحماية اتساق المنصة.</p><ul><li>الحقول المميزة بنجمة مطلوبة.</li><li>التغييرات تطبق مباشرة على المنصة.</li><li>الصلاحيات تحدد من يمكنه الوصول.</li></ul>{% else %}<p>Enter data carefully. All fields and relationships are validated before saving to protect platform consistency.</p><ul><li>Fields marked with an asterisk are required.</li><li>Changes apply immediately to the platform.</li><li>Permissions determine who can access data.</li></ul>{% endif %}
     </aside>
 </section>
 {% endblock %}
