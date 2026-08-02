@@ -10,6 +10,7 @@ from django.db.models.deletion import ProtectedError
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.utils.translation import get_language
 
 from billing.models import Invoice, Payment
 from core.models import Branch, ContactMessage, WorkshopReview
@@ -60,6 +61,10 @@ def base_context(request, **extra):
     return context
 
 
+def is_english():
+    return (get_language() or "ar").startswith("en")
+
+
 @management_required
 def dashboard(request):
     work_orders = scope_queryset(
@@ -92,7 +97,7 @@ def dashboard(request):
     )
     context = base_context(
         request,
-        page_title="مركز القيادة",
+        page_title="Dashboard" if is_english() else "مركز القيادة",
         stats={
             "active_orders": work_orders.filter(status__in=active_statuses).count(),
             "customers": Customer.objects.count(),
@@ -168,7 +173,11 @@ def resource_form(request, slug, pk=None):
         saved = form.save()
         messages.success(
             request,
-            f"تم {'تحديث' if instance else 'إضافة'} {resource.singular} بنجاح.",
+            (
+                f"{resource.singular} was {'updated' if instance else 'added'} successfully."
+                if is_english()
+                else f"تم {'تحديث' if instance else 'إضافة'} {resource.singular} بنجاح."
+            ),
         )
         return redirect("backoffice:resource-list", slug=slug)
     context = base_context(
@@ -192,11 +201,18 @@ def resource_delete(request, slug, pk):
     if request.method == "POST":
         try:
             instance.delete()
-            messages.success(request, f"تم حذف {resource.singular} بنجاح.")
+            messages.success(
+                request,
+                f"{resource.singular} was deleted successfully."
+                if is_english()
+                else f"تم حذف {resource.singular} بنجاح.",
+            )
         except ProtectedError:
             messages.error(
                 request,
-                "تعذر الحذف لوجود بيانات مرتبطة. عطّل السجل أو عدّل ارتباطاته أولًا.",
+                "Deletion failed because related data exists. Disable the record or update its relationships first."
+                if is_english()
+                else "تعذر الحذف لوجود بيانات مرتبطة. عطّل السجل أو عدّل ارتباطاته أولًا.",
             )
         return redirect("backoffice:resource-list", slug=slug)
     return render(

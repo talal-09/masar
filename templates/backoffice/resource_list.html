@@ -3,38 +3,38 @@
 {% block content %}
 <section class="bo-page-actions">
     <form class="bo-search" method="get">
-        <span>⌕</span><input type="search" name="q" value="{{ query }}" placeholder="ابحث داخل {{ resource.title }}...">
-        {% if query %}<a href="{% url 'backoffice:resource-list' resource.slug %}">مسح</a>{% endif %}
+        <span>⌕</span><input type="search" name="q" value="{{ query }}" placeholder="{% if LANGUAGE_CODE == 'ar' %}ابحث داخل {{ resource.title }}...{% else %}Search {{ resource.title|bo_tr }}...{% endif %}">
+        {% if query %}<a href="{% url 'backoffice:resource-list' resource.slug %}">{% if LANGUAGE_CODE == 'ar' %}مسح{% else %}Clear{% endif %}</a>{% endif %}
     </form>
-    {% if can_add %}<a class="bo-primary-button" href="{% url 'backoffice:resource-add' resource.slug %}">+ إضافة {{ resource.singular }}</a>{% endif %}
+    {% if can_add %}<a class="bo-primary-button" href="{% url 'backoffice:resource-add' resource.slug %}">+ {% if LANGUAGE_CODE == 'ar' %}إضافة {{ resource.singular }}{% else %}Add {{ resource.singular|bo_tr }}{% endif %}</a>{% endif %}
 </section>
 <section class="bo-card">
     <div class="bo-card-head">
-        <div><p class="bo-eyebrow">{{ resource.section }}</p><h3>{{ page.paginator.count }} سجل</h3></div>
-        <span class="bo-muted">صفحة {{ page.number }} من {{ page.paginator.num_pages }}</span>
+        <div><p class="bo-eyebrow">{{ resource.section|bo_tr }}</p><h3>{{ page.paginator.count }} {% if LANGUAGE_CODE == 'ar' %}سجل{% else %}records{% endif %}</h3></div>
+        <span class="bo-muted">{% if LANGUAGE_CODE == 'ar' %}صفحة {{ page.number }} من {{ page.paginator.num_pages }}{% else %}Page {{ page.number }} of {{ page.paginator.num_pages }}{% endif %}</span>
     </div>
     <div class="bo-table-wrap">
         <table>
-            <thead><tr>{% for field in resource.list_fields %}<th>{% field_label resource field %}</th>{% endfor %}<th>الإجراءات</th></tr></thead>
+            <thead><tr>{% for field in resource.list_fields %}<th>{% field_label resource field %}</th>{% endfor %}<th>{% if LANGUAGE_CODE == 'ar' %}الإجراءات{% else %}Actions{% endif %}</th></tr></thead>
             <tbody>
             {% for item in page %}
                 <tr>
                     {% for field in resource.list_fields %}<td>{% field_value item field %}</td>{% endfor %}
                     <td class="bo-row-actions">
-                        {% if request.user|can_change:resource and not resource.readonly %}<a href="{% url 'backoffice:resource-edit' resource.slug item.pk %}">تعديل</a>{% endif %}
-                        {% if request.user|can_delete:resource and not resource.readonly %}<a class="danger" href="{% url 'backoffice:resource-delete' resource.slug item.pk %}">حذف</a>{% endif %}
-                        {% if resource.readonly %}<span class="bo-muted">للعرض</span>{% endif %}
+                        {% if request.user|can_change:resource and not resource.readonly %}<a href="{% url 'backoffice:resource-edit' resource.slug item.pk %}">{% if LANGUAGE_CODE == 'ar' %}تعديل{% else %}Edit{% endif %}</a>{% endif %}
+                        {% if request.user|can_delete:resource and not resource.readonly %}<a class="danger" href="{% url 'backoffice:resource-delete' resource.slug item.pk %}">{% if LANGUAGE_CODE == 'ar' %}حذف{% else %}Delete{% endif %}</a>{% endif %}
+                        {% if resource.readonly %}<span class="bo-muted">{% if LANGUAGE_CODE == 'ar' %}للعرض{% else %}View only{% endif %}</span>{% endif %}
                     </td>
                 </tr>
-            {% empty %}<tr><td colspan="20" class="bo-empty">لا توجد نتائج مطابقة.</td></tr>{% endfor %}
+            {% empty %}<tr><td colspan="20" class="bo-empty">{% if LANGUAGE_CODE == 'ar' %}لا توجد نتائج مطابقة.{% else %}No matching results.{% endif %}</td></tr>{% endfor %}
             </tbody>
         </table>
     </div>
     {% if page.paginator.num_pages > 1 %}
         <nav class="bo-pagination">
-            {% if page.has_previous %}<a href="?q={{ query }}&page={{ page.previous_page_number }}">السابق</a>{% endif %}
+            {% if page.has_previous %}<a href="?q={{ query }}&page={{ page.previous_page_number }}">{% if LANGUAGE_CODE == 'ar' %}السابق{% else %}Previous{% endif %}</a>{% endif %}
             <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
-            {% if page.has_next %}<a href="?q={{ query }}&page={{ page.next_page_number }}">التالي</a>{% endif %}
+            {% if page.has_next %}<a href="?q={{ query }}&page={{ page.next_page_number }}">{% if LANGUAGE_CODE == 'ar' %}التالي{% else %}Next{% endif %}</a>{% endif %}
         </nav>
     {% endif %}
 </section>
