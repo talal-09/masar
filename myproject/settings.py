@@ -28,10 +28,17 @@ def env_list(name: str, default: str = "") -> list[str]:
 # الإعدادات الأساسية
 # ==========================
 
+RUNNING_ON_RENDER = os.getenv("RENDER", "").strip().lower() == "true"
+
 DEBUG = os.getenv(
     "DJANGO_DEBUG",
     "False",
 ).strip().lower() == "true"
+
+# Render production must never expose debug pages, even if an old environment
+# variable was accidentally left enabled in the service dashboard.
+if RUNNING_ON_RENDER:
+    DEBUG = False
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "").strip()
 
@@ -324,6 +331,8 @@ SHOW_TECHNICIAN_TO_CUSTOMERS = True
 
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 
 SECURE_SSL_REDIRECT = not DEBUG
 
