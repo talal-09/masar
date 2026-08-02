@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#082f35">
     <title>{{ page_title|default:"لوحة الإدارة" }} | مَسَار</title>
-    <link rel="icon" href="{% static 'images/masar_logo.png' %}" type="image/png">
+    <link rel="icon" href="{% static 'images/logo.svg' %}" type="image/svg+xml">
     <link rel="stylesheet" href="{% static 'backoffice/app.css' %}">
 </head>
 <body>
@@ -14,8 +14,7 @@
         <aside class="bo-sidebar" id="bo-sidebar">
             <div class="bo-brand">
                 <a href="{% url 'backoffice:dashboard' %}">
-                    <span class="bo-brand-mark">م</span>
-                    <span><strong>مَسَار</strong><small>إدارة المنصة</small></span>
+                    <img class="bo-sidebar-logo" src="{% static 'images/logo.svg' %}" alt="نظام مسار لإدارة صيانة السيارات">
                 </a>
                 <button class="bo-icon-button bo-close" type="button" data-sidebar-close aria-label="إغلاق القائمة">×</button>
             </div>

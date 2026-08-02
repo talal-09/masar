@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}بوابة العميل{% endblock %} | مَسَار</title>
-    <link rel="icon" href="{% static 'images/masar_logo.png' %}?v=3" type="image/png">
+    <link rel="icon" href="{% static 'images/logo.svg' %}" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -28,8 +28,8 @@
 <body class="min-h-screen bg-slate-50 text-slate-900">
     <header class="fixed inset-x-0 top-0 z-40 border-b border-[#ded4c1] bg-[#fffdf8]/95 shadow-sm backdrop-blur-xl">
         <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:h-20 sm:px-8">
-            <a href="{% url 'home' %}" class="flex h-14 w-36 items-center justify-center overflow-hidden sm:h-16 sm:w-48" aria-label="العودة إلى واجهة الموقع">
-                <img src="{% static 'images/masar_logo.png' %}?v=3" alt="شعار مَسَار — نظام إدارة صيانة السيارات" width="192" height="96" class="h-full w-full scale-[1.45] object-cover">
+            <a href="{% url 'home' %}" class="flex h-11 max-w-[10rem] items-center sm:max-w-[12rem]" aria-label="العودة إلى واجهة الموقع">
+                <img src="{% static 'images/logo.svg' %}" alt="نظام مسار لإدارة صيانة السيارات" class="h-11 w-auto max-w-full object-contain">
             </a>
             <nav class="hidden items-center gap-1 lg:flex">
                 <a href="{% url 'customers:vehicle-list' %}" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {% if request.resolver_match.namespace == 'customers' and 'vehicle' in request.resolver_match.url_name %}bg-teal-50 text-teal-700{% else %}hover:bg-slate-100{% endif %}">
