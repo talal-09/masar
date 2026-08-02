@@ -44,8 +44,9 @@
                 <a href="{% url 'dashboard' %}" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.namespace == 'customers' and 'vehicle' not in request.resolver_match.url_name %}bg-teal-50 text-teal-700{% else %}hover:bg-slate-100{% endif %}">
                     <svg class="size-5" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="2"/><path d="M5 20c.7-4 3-6 7-6s6.3 2 7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>حسابي</span>
                 </a>
-                <a href="{% url 'maintenance:notifications' %}" class="grid size-10 place-items-center rounded-xl hover:bg-slate-100" aria-label="الإشعارات">
+                <a href="{% url 'maintenance:notifications' %}" class="relative grid size-10 place-items-center rounded-xl hover:bg-slate-100" aria-label="الإشعارات{% if unread_notifications_count %}، {{ unread_notifications_count }} غير مقروء{% endif %}">
                     <svg class="size-5" viewBox="0 0 24 24" fill="none"><path d="M6 17h12l-1.5-2.5V10a4.5 4.5 0 0 0-9 0v4.5L6 17Zm4 3h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    {% if unread_notifications_count %}<span class="absolute -mt-7 mr-7 grid size-5 place-items-center rounded-full bg-rose-600 text-[10px] text-white">{{ unread_notifications_count }}</span>{% endif %}
                 </a>
             </nav>
             <div class="flex items-center gap-2">
@@ -69,7 +70,7 @@
     {% if messages %}
         <div class="mx-auto mt-32 max-w-7xl space-y-2 px-5 pt-4 sm:mt-36 sm:px-8 lg:mt-20">
             {% for message in messages %}
-                <div class="rounded-2xl border border-[#d8c18d] bg-[#fff8e8] px-5 py-3 text-sm font-bold text-[#70572b]">{{ message }}</div>
+                <div role="alert" class="portal-message flex items-center justify-between rounded-2xl border px-5 py-3 text-sm font-bold {% if message.tags == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-800{% elif message.tags == 'error' %}border-rose-200 bg-rose-50 text-rose-800{% elif message.tags == 'warning' %}border-amber-200 bg-amber-50 text-amber-800{% else %}border-sky-200 bg-sky-50 text-sky-800{% endif %}"><span>{{ message }}</span><button type="button" class="mr-3 text-xl" aria-label="إغلاق الرسالة">×</button></div>
             {% endfor %}
         </div>
     {% endif %}
@@ -84,6 +85,16 @@
             <div class="flex gap-5"><a href="{% url 'branches' %}" class="hover:text-teal-700">الفروع</a><a href="{% url 'contact' %}" class="hover:text-teal-700">تواصل معنا</a></div>
         </div>
     </footer>
+
+    <script>
+        document.querySelectorAll('.portal-message button').forEach(button => button.addEventListener('click', () => button.parentElement.remove()));
+        document.querySelectorAll('form[method="post"]:not([data-no-loading])').forEach(form => form.addEventListener('submit', () => {
+            if (!form.checkValidity() || form.dataset.submitted) return;
+            form.dataset.submitted = 'true';
+            const button = form.querySelector('button[type="submit"], input[type="submit"]');
+            if (button) { button.disabled = true; button.classList.add('opacity-70', 'cursor-wait'); if (button.tagName === 'BUTTON') button.innerHTML = '<span class="inline-block animate-spin">◌</span> جارٍ التنفيذ…'; }
+        }));
+    </script>
 
 </body>
 </html>

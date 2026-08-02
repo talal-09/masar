@@ -53,5 +53,10 @@
             });
         }
     </script>
+    <script>
+        const toggle = document.getElementById('togglePassword');
+        if (toggle) toggle.addEventListener('click', () => { const input = document.querySelector('input[type="password"]'); if (!input) return; const show = input.type === 'password'; input.type = show ? 'text' : 'password'; toggle.textContent = show ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'; });
+        document.querySelectorAll('form[method="post"]').forEach(form => form.addEventListener('submit', () => { if (!form.checkValidity() || form.dataset.submitted) return; form.dataset.submitted='true'; const button=form.querySelector('button[type="submit"]'); if(button){button.disabled=true;button.textContent='جارٍ التنفيذ…';} }));
+    </script>
 </body>
 </html>

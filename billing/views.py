@@ -6,6 +6,8 @@ from bidi.algorithm import get_display
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.db.models import Q
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
@@ -28,7 +30,26 @@ def invoice_list(request):
         .select_related("work_order", "work_order__vehicle")
         .order_by("-created_at")
     )
-    return render(request, "billing/invoice_list.html", {"invoices": invoices})
+    query = request.GET.get("q", "").strip()[:100]
+    status = request.GET.get("status", "").strip()
+    if query:
+        invoices = invoices.filter(
+            Q(work_order__vehicle__brand__icontains=query)
+            | Q(work_order__vehicle__model__icontains=query)
+            | Q(work_order__vehicle__plate_number__icontains=query)
+        )
+    valid_statuses = {value for value, _ in Invoice.STATUS}
+    if status in valid_statuses:
+        invoices = invoices.filter(status=status)
+    page = Paginator(invoices, 10).get_page(request.GET.get("page"))
+    return render(request, "billing/invoice_list.html", {
+        "invoices": page,
+        "page_obj": page,
+        "query": query,
+        "selected_status": status,
+        "status_choices": Invoice.STATUS,
+        "results_count": page.paginator.count,
+    })
 
 
 @customer_required

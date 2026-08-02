@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -20,7 +22,26 @@ def order_list(request):
         .select_related("vehicle", "branch")
         .order_by("-created_at")
     )
-    return render(request, "maintenance/order_list.html", {"orders": orders})
+    query = request.GET.get("q", "").strip()[:100]
+    status = request.GET.get("status", "").strip()
+    if query:
+        orders = orders.filter(
+            Q(vehicle__brand__icontains=query)
+            | Q(vehicle__model__icontains=query)
+            | Q(vehicle__plate_number__icontains=query)
+        )
+    valid_statuses = {value for value, _ in WorkOrder.STATUS}
+    if status in valid_statuses:
+        orders = orders.filter(status=status)
+    page = Paginator(orders, 10).get_page(request.GET.get("page"))
+    return render(request, "maintenance/order_list.html", {
+        "orders": page,
+        "page_obj": page,
+        "query": query,
+        "selected_status": status,
+        "status_choices": WorkOrder.STATUS,
+        "results_count": page.paginator.count,
+    })
 
 
 @customer_required

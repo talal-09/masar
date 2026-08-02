@@ -10,7 +10,7 @@
         </div>
     </section>
 
-    <section class="mt-10 grid gap-4 sm:grid-cols-3">
+    <section class="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <a href="{% url 'customers:vehicle-list' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-teal-200">
             <span class="text-sm font-bold text-slate-400">سياراتي</span>
             <strong class="mt-3 block text-4xl font-black">{{ vehicles_count }}</strong>
@@ -19,11 +19,15 @@
             <span class="text-sm font-bold text-teal-100">طلبات الصيانة</span>
             <strong class="mt-3 block text-4xl font-black">{{ work_orders_count }}</strong>
         </a>
+        <a href="{% url 'maintenance:order-list' %}?status=working" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><span class="text-sm font-bold text-slate-400">قيد التنفيذ</span><strong class="mt-2 block text-3xl font-black">{{ in_progress_count }}</strong></a>
+        <a href="{% url 'maintenance:order-list' %}?status=completed" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><span class="text-sm font-bold text-slate-400">المكتملة</span><strong class="mt-2 block text-3xl font-black">{{ completed_count }}</strong></a>
         <a href="{% url 'billing:invoice-list' %}" class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-teal-200">
             <span class="text-sm font-bold text-slate-400">فواتيري</span>
             <strong class="mt-3 block text-4xl font-black">{{ invoices_count }}</strong>
         </a>
     </section>
+
+    {% if latest_order %}<a href="{% url 'maintenance:order-detail' latest_order.pk %}" class="mt-5 flex flex-col justify-between gap-3 rounded-2xl border border-teal-200 bg-teal-50 p-5 sm:flex-row sm:items-center"><div><span class="text-sm font-bold text-teal-700">آخر طلب</span><strong class="mt-1 block">WO-{{ latest_order.pk }} · {{ latest_order.vehicle }}</strong></div><span class="rounded-full bg-white px-3 py-2 text-sm font-bold text-teal-700">{{ latest_order.get_status_display }}</span></a>{% endif %}
 
     <section class="mt-8">
         <h2 class="text-lg font-black">روابط سريعة</h2>
@@ -48,4 +52,6 @@
             {% endfor %}
         </div>
     </section>
+
+    <section class="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm"><div class="flex items-center justify-between"><h2 class="text-xl font-black">آخر النشاطات</h2><a href="{% url 'maintenance:notifications' %}" class="text-sm font-bold text-teal-700">{{ unread_count }} غير مقروء</a></div><div class="mt-5 divide-y divide-slate-100">{% for activity in recent_activity %}<a href="{% if activity.pk %}{% url activity.url activity.pk %}{% else %}{% url activity.url %}{% endif %}" class="block py-4 first:pt-0 last:pb-0"><strong>{{ activity.title }}</strong><p class="mt-1 line-clamp-1 text-sm text-slate-500">{{ activity.description }}</p><time class="mt-1 block text-xs text-slate-400">{{ activity.date|date:'Y/m/d - H:i' }}</time></a>{% empty %}<div class="py-8 text-center text-slate-500">لا توجد نشاطات حتى الآن.</div>{% endfor %}</div></section>
 {% endblock %}

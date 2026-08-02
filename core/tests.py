@@ -3,8 +3,10 @@ from io import BytesIO
 
 from django.contrib.auth.models import Group, Permission, User
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 from pypdf import PdfReader
 
 from billing.models import Invoice
@@ -15,6 +17,7 @@ from inventory.models import BranchStock, SparePart, StockMovement
 from maintenance.models import Quote, WorkOrder, WorkOrderPart, WorkOrderService
 from services.models import Service, ServiceCategory
 from customers.forms import CAR_BRANDS, VehicleForm
+from core.views import custom_500
 
 
 class CustomerPermissionTests(TestCase):
@@ -382,6 +385,58 @@ class CustomerPermissionTests(TestCase):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 302)
                 self.assertIn(reverse("login"), response.url)
+
+    @override_settings(DEBUG=False)
+    def test_custom_404_page_has_correct_status_and_branding(self):
+        response = self.client.get("/page-that-does-not-exist/")
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "لم نجد هذه الصفحة", status_code=404)
+        self.assertContains(response, "مَسَار", status_code=404)
+
+    @override_settings(DEBUG=False)
+    def test_foreign_object_uses_custom_403_page(self):
+        self.login_customer_one()
+        response = self.client.get(
+            reverse("maintenance:order-detail", args=[self.order_two.pk])
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "لا تملك صلاحية الوصول", status_code=403)
+
+    def test_custom_500_handler_hides_exception_details(self):
+        response = custom_500(RequestFactory().get("/"))
+        self.assertEqual(response.status_code, 500)
+        self.assertNotContains(response, "Traceback", status_code=500)
+
+    def test_past_appointment_is_rejected(self):
+        self.order_one.status = "completed"
+        self.order_one.save(update_fields=["status"])
+        self.login_customer_one()
+        response = self.client.post(
+            reverse("maintenance:order-create"),
+            {
+                "vehicle": self.vehicle_one.pk,
+                "branch": self.branch.pk,
+                "scheduled_at": (timezone.now() - timedelta(days=1)).strftime(
+                    "%Y-%m-%dT%H:%M"
+                ),
+                "description": "موعد قديم",
+                "mileage": 12100,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "اختر موعدًا حاليًا أو قادمًا")
+        self.assertFalse(WorkOrder.objects.filter(description="موعد قديم").exists())
+
+    def test_vehicle_delete_get_only_shows_confirmation(self):
+        self.order_one.status = "completed"
+        self.order_one.save(update_fields=["status"])
+        self.login_customer_one()
+        response = self.client.get(
+            reverse("customers:vehicle-delete", args=[self.vehicle_one.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.vehicle_one.refresh_from_db()
+        self.assertTrue(self.vehicle_one.is_active)
 
     def test_customer_portal_pages_render_for_owner(self):
         self.login_customer_one()
