@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 
 from core.models import Branch
 from customers.models import Vehicle
@@ -45,6 +46,9 @@ class MaintenanceRequestForm(forms.ModelForm):
             self.fields["vehicle"].initial = vehicles.first()
         self.fields["branch"].queryset = Branch.objects.filter(is_active=True)
         self.fields["scheduled_at"].input_formats = ("%Y-%m-%dT%H:%M",)
+        self.fields["scheduled_at"].widget.attrs["min"] = timezone.localtime().strftime(
+            "%Y-%m-%dT%H:%M"
+        )
         for field in self.fields.values():
             field.widget.attrs["class"] = FIELD_CLASS
 
@@ -65,3 +69,15 @@ class MaintenanceRequestForm(forms.ModelForm):
                 f"(WO-{active_order.pk}). تابع الطلب الحالي قبل إنشاء طلب جديد."
             )
         return vehicle
+
+    def clean_scheduled_at(self):
+        scheduled_at = self.cleaned_data.get("scheduled_at")
+        if scheduled_at and scheduled_at < timezone.now():
+            raise forms.ValidationError("اختر موعدًا حاليًا أو قادمًا.")
+        if scheduled_at and WorkOrder.objects.filter(
+            branch=self.cleaned_data.get("branch"),
+            scheduled_at=scheduled_at,
+            status__in=self.ACTIVE_STATUSES,
+        ).exists():
+            raise forms.ValidationError("هذا الموعد محجوز، اختر موعدًا آخر.")
+        return scheduled_at

@@ -3,6 +3,8 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
+from django.core.paginator import Paginator
+from django.db.models import Q
 
 from maintenance.models import WorkOrder
 
@@ -46,8 +48,21 @@ def vehicle_list(request):
     vehicles = Vehicle.objects.filter(
         customer=request.customer,
         is_active=True,
-    )
-    return render(request, "customers/vehicle_list.html", {"vehicles": vehicles})
+    ).order_by("brand", "model")
+    query = request.GET.get("q", "").strip()[:100]
+    if query:
+        vehicles = vehicles.filter(
+            Q(brand__icontains=query)
+            | Q(model__icontains=query)
+            | Q(plate_number__icontains=query)
+        )
+    page = Paginator(vehicles, 9).get_page(request.GET.get("page"))
+    return render(request, "customers/vehicle_list.html", {
+        "vehicles": page,
+        "page_obj": page,
+        "query": query,
+        "results_count": page.paginator.count,
+    })
 
 
 @customer_required

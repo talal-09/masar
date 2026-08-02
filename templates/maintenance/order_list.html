@@ -2,12 +2,15 @@
 {% block title %}طلبات الصيانة{% endblock %}
 {% block content %}
     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"><div><h1 class="text-2xl font-black sm:text-3xl">طلبات الصيانة</h1><p class="mt-2 text-sm text-slate-500 sm:text-base">جميع الطلبات الخاصة بسياراتك فقط.</p></div><a href="{% url 'maintenance:order-create' %}" class="flex min-h-12 items-center justify-center rounded-xl bg-slate-950 px-5 py-3 font-black text-white">طلب جديد</a></div>
-    <div class="mt-8 space-y-4">
+    <form method="get" class="mt-6 grid gap-2 rounded-2xl border border-slate-200 bg-white p-3 sm:grid-cols-[1fr_190px_auto]" data-no-loading><label class="sr-only" for="order-search">ابحث في الطلبات</label><input id="order-search" name="q" value="{{ query }}" class="rounded-xl border border-slate-200 px-4 py-3" placeholder="السيارة أو رقم اللوحة"><select name="status" class="rounded-xl border border-slate-200 px-4 py-3"><option value="">كل الحالات</option>{% for value,label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="rounded-xl bg-teal-700 px-5 font-bold text-white">تصفية</button></form>
+    <p class="mt-3 text-sm text-slate-500">{{ results_count }} نتيجة</p>
+    <div class="mt-5 space-y-3">
         {% for order in orders %}
             <a href="{% url 'maintenance:order-detail' order.pk %}" class="flex flex-col justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-teal-200 sm:flex-row sm:items-center">
                 <div><span class="text-sm font-black text-teal-700">WO-{{ order.pk }}</span><h2 class="mt-1 text-lg font-black">{{ order.vehicle }}</h2><p class="mt-2 text-sm text-slate-400">{{ order.branch }} · {{ order.created_at|date:"Y/m/d" }}</p></div>
                 <span class="w-fit rounded-full bg-teal-50 px-4 py-2 text-sm font-black text-teal-700">{{ order.get_status_display }}</span>
             </a>
-        {% empty %}<div class="rounded-3xl bg-white p-12 text-center text-slate-400">لا توجد طلبات صيانة.</div>{% endfor %}
+        {% empty %}<div class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center"><h2 class="font-black">لا توجد طلبات مطابقة</h2><p class="mt-2 text-sm text-slate-500">يمكنك تغيير التصفية أو إنشاء طلب صيانة جديد.</p><a href="{% url 'maintenance:order-create' %}" class="mt-5 inline-flex rounded-xl bg-teal-700 px-5 py-3 font-bold text-white">طلب صيانة</a></div>{% endfor %}
     </div>
+    {% include "portal/pagination.html" %}
 {% endblock %}

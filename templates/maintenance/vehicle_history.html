@@ -1,10 +1,12 @@
 {% extends "portal/base.html" %}
-{% block title %}سجل صيانة {{ vehicle }}{% endblock %}
+{% block title %}تفاصيل {{ vehicle }}{% endblock %}
 {% block content %}
-    <h1 class="text-3xl font-black">سجل صيانة {{ vehicle }}</h1>
-    <div class="mt-8 space-y-4">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><span class="text-sm font-bold text-teal-700">تفاصيل السيارة</span><h1 class="mt-1 text-3xl font-black">{{ vehicle.brand }} {{ vehicle.model }}</h1><p class="mt-2 text-slate-500">لوحة {{ vehicle.plate_number }}</p></div><a href="{% url 'maintenance:order-create' %}" class="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-950 px-5 font-black text-white">حجز صيانة لهذه السيارة</a></div>
+    <dl class="mt-6 grid grid-cols-2 gap-3 rounded-3xl border border-slate-200 bg-white p-5 sm:grid-cols-4"><div><dt class="text-sm text-slate-400">سنة الصنع</dt><dd class="mt-1 font-black">{{ vehicle.year }}</dd></div><div><dt class="text-sm text-slate-400">اللون</dt><dd class="mt-1 font-black">{{ vehicle.color }}</dd></div><div><dt class="text-sm text-slate-400">الممشى</dt><dd class="mt-1 font-black">{{ vehicle.mileage }} كم</dd></div><div><dt class="text-sm text-slate-400">عدد الطلبات</dt><dd class="mt-1 font-black">{{ orders|length }}</dd></div></dl>
+    <h2 class="mt-8 text-xl font-black">سجل الصيانة</h2>
+    <div class="mt-4 space-y-3">
         {% for order in orders %}
             <a href="{% url 'maintenance:order-detail' order.pk %}" class="flex justify-between rounded-3xl border border-slate-200 bg-white p-6"><div><strong>WO-{{ order.pk }}</strong><p class="mt-1 text-sm text-slate-400">{{ order.created_at|date:"Y/m/d" }}</p></div><span class="font-bold text-teal-700">{{ order.get_status_display }}</span></a>
-        {% empty %}<p class="rounded-3xl bg-white p-10 text-center text-slate-400">لا يوجد سجل صيانة لهذه السيارة.</p>{% endfor %}
+        {% empty %}<div class="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center"><h3 class="font-black">لا يوجد سجل صيانة لهذه السيارة</h3><p class="mt-2 text-sm text-slate-500">ابدأ بحجز أول موعد صيانة.</p></div>{% endfor %}
     </div>
 {% endblock %}
