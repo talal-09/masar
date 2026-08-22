@@ -9,6 +9,7 @@ from core.i18n import tr
 
 
 class Invoice(models.Model):
+    TAX_RATE = Decimal("0.15")
     STATUS = [
         ("pending", tr("Unpaid")),
         ("paid", tr("Paid")),
@@ -56,24 +57,67 @@ class Invoice(models.Model):
     def remaining_amount(self):
         return max(self.total - self.paid_amount, Decimal("0.00"))
 
-    def recalculate(self, tax_rate=Decimal("0.15")):
-        service_total = sum(
-            (item.service.price for item in self.work_order.services.select_related("service")),
+    @property
+    def services_total(self):
+        return sum(
+            (
+                item.line_total
+                for item in self.items.all()
+                if item.item_type == InvoiceItem.SERVICE
+            ),
             Decimal("0.00"),
         )
-        part_total = sum(
-            (item.unit_price * item.quantity for item in self.work_order.installed_parts.all()),
+
+    @property
+    def parts_total(self):
+        return sum(
+            (
+                item.line_total
+                for item in self.items.all()
+                if item.item_type == InvoiceItem.PART
+            ),
             Decimal("0.00"),
         )
-        self.subtotal = service_total + part_total
-        taxable = max(self.subtotal - self.discount, Decimal("0.00"))
-        self.tax = (taxable * tax_rate).quantize(Decimal("0.01"))
-        self.total = taxable + self.tax
-        self.save(update_fields=["subtotal", "tax", "total"])
-        self.sync_items()
+
+    def clean(self):
+        if self.discount < 0:
+            raise ValidationError({"discount": "لا يمكن أن يكون الخصم سالبًا."})
+        if self.subtotal is not None and self.discount > self.subtotal:
+            raise ValidationError({
+                "discount": "لا يمكن أن يتجاوز الخصم المجموع الفرعي."
+            })
+
+    def recalculate(self, tax_rate=None, sync_from_work_order=False):
+        with transaction.atomic():
+            if sync_from_work_order or not self.items.exists():
+                self.sync_items()
+
+            items = list(self.items.all())
+            if not items:
+                raise ValidationError("لا توجد بنود قابلة للفوترة.")
+
+            self.subtotal = sum(
+                (item.line_total for item in items),
+                Decimal("0.00"),
+            )
+            self.full_clean(exclude=("tax", "total", "status"))
+            taxable = self.subtotal - self.discount
+            tax_rate = self.TAX_RATE if tax_rate is None else Decimal(tax_rate)
+            self.tax = (taxable * tax_rate).quantize(Decimal("0.01"))
+            self.total = taxable + self.tax
+            if self.paid_amount > self.total:
+                raise ValidationError({
+                    "discount": "لا يمكن أن يجعل الخصم الإجمالي أقل من المبلغ المدفوع."
+                })
+            self.save(update_fields=["subtotal", "tax", "total"])
+            self.update_payment_status()
 
     def sync_items(self):
         with transaction.atomic():
+            existing_prices = {
+                (item.item_type, item.description): item.unit_price
+                for item in self.items.all()
+            }
             self.items.all().delete()
             InvoiceItem.objects.bulk_create(
                 [
@@ -82,7 +126,10 @@ class Invoice(models.Model):
                         item_type=InvoiceItem.SERVICE,
                         description=item.service.name,
                         quantity=1,
-                        unit_price=item.service.price,
+                        unit_price=existing_prices.get(
+                            (InvoiceItem.SERVICE, item.service.name),
+                            item.service.price,
+                        ),
                     )
                     for item in self.work_order.services.select_related("service")
                 ]
@@ -126,6 +173,28 @@ class InvoiceItem(models.Model):
     def line_total(self):
         return self.unit_price * self.quantity
 
+    def clean(self):
+        if self.quantity < 1:
+            raise ValidationError({"quantity": "يجب أن تكون الكمية واحدًا على الأقل."})
+        if self.unit_price < 0:
+            raise ValidationError({"unit_price": "لا يمكن أن يكون سعر الوحدة سالبًا."})
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            self.full_clean()
+            result = super().save(*args, **kwargs)
+            self.invoice.recalculate()
+            return result
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            invoice = self.invoice
+            if not invoice.items.exclude(pk=self.pk).exists():
+                raise ValidationError("لا يمكن حذف آخر بند من الفاتورة.")
+            result = super().delete(*args, **kwargs)
+            invoice.recalculate()
+            return result
+
     class Meta:
         verbose_name = "بند فاتورة"
         verbose_name_plural = "بنود الفاتورة"
@@ -157,13 +226,20 @@ class Payment(models.Model):
             if self.pk:
                 previous = type(self).objects.get(pk=self.pk).amount
             if self.amount - previous > self.invoice.remaining_amount:
-                raise ValidationError({"amount": "مبلغ الدفع أكبر من المبلغ المتبقي."})
+                raise ValidationError({
+                    "amount": "قيمة الدفعة تتجاوز المبلغ المتبقي على الفاتورة."
+                })
 
     def save(self, *args, **kwargs):
-        self.full_clean()
-        result = super().save(*args, **kwargs)
-        self.invoice.update_payment_status()
-        return result
+        with transaction.atomic():
+            locked_invoice = Invoice.objects.select_for_update().get(
+                pk=self.invoice_id
+            )
+            self.invoice = locked_invoice
+            self.full_clean()
+            result = super().save(*args, **kwargs)
+            locked_invoice.update_payment_status()
+            return result
 
     def delete(self, *args, **kwargs):
         invoice = self.invoice

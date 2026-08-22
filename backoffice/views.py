@@ -3,20 +3,20 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, Q
 from django.db.models.deletion import ProtectedError
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.translation import get_language
 
 from billing.models import Invoice, Payment
-from core.models import Branch, ContactMessage, WorkshopReview
+from core.models import Branch
 from customers.models import Customer, Vehicle
 from core.models import Employee
-from inventory.models import BranchStock, SparePart
 from maintenance.models import WorkOrder
 
 from .access import (
@@ -100,57 +100,187 @@ def work_order_options(request):
     })
 
 
+@management_required
+def invoice_preview(request):
+    require_model_permission(request.user, Invoice, "view")
+    work_order_id = request.GET.get("work_order", "")
+    invoice_id = request.GET.get("invoice", "")
+    try:
+        discount = max(
+            Decimal(request.GET.get("discount", "0")),
+            Decimal("0.00"),
+        )
+    except (ArithmeticError, ValueError):
+        discount = Decimal("0.00")
+
+    if invoice_id.isdigit():
+        invoice = get_object_or_404(
+            scope_queryset(Invoice.objects.all(), request.user),
+            pk=invoice_id,
+        )
+        service_total = invoice.services_total
+        part_total = invoice.parts_total
+    elif work_order_id.isdigit():
+        work_order = get_object_or_404(
+            scope_queryset(WorkOrder.objects.all(), request.user),
+            pk=work_order_id,
+        )
+        service_total = sum(
+            (
+                item.service.price
+                for item in work_order.services.select_related("service")
+            ),
+            Decimal("0.00"),
+        )
+        part_total = sum(
+            (
+                item.unit_price * item.quantity
+                for item in work_order.installed_parts.all()
+            ),
+            Decimal("0.00"),
+        )
+    else:
+        return JsonResponse({"error": "اختر أمر الصيانة أولًا."}, status=400)
+
+    subtotal = service_total + part_total
+    taxable = max(subtotal - discount, Decimal("0.00"))
+    tax = (taxable * Invoice.TAX_RATE).quantize(Decimal("0.01"))
+    return JsonResponse({
+        "services": f"{service_total:.2f}",
+        "parts": f"{part_total:.2f}",
+        "subtotal": f"{subtotal:.2f}",
+        "tax": f"{tax:.2f}",
+        "total": f"{taxable + tax:.2f}",
+    })
+
+
 def is_english():
     return (get_language() or "ar").startswith("en")
 
 
+def is_general_manager(user):
+    employee = getattr(user, "employee", None)
+    return user.is_superuser or (
+        employee and employee.role == Employee.GENERAL_MANAGER
+    )
+
+
+def workshop_metrics(queryset):
+    now = timezone.now()
+    today = timezone.localdate()
+    return queryset.aggregate(
+        in_center=Count("id", filter=Q(status__in=WorkOrder.ACTIVE_STATUSES)),
+        new=Count("id", filter=Q(status=WorkOrder.NEW)),
+        inspection=Count("id", filter=Q(status=WorkOrder.INSPECTION)),
+        inspected=Count("id", filter=Q(status=WorkOrder.INSPECTED)),
+        awaiting_approval=Count("id", filter=Q(status=WorkOrder.AWAITING_APPROVAL)),
+        approved=Count("id", filter=Q(status=WorkOrder.APPROVED)),
+        working=Count("id", filter=Q(status=WorkOrder.WORKING)),
+        awaiting_parts=Count("id", filter=Q(status=WorkOrder.AWAITING_PARTS)),
+        testing=Count("id", filter=Q(status=WorkOrder.TESTING)),
+        ready_for_delivery=Count("id", filter=Q(status=WorkOrder.READY_FOR_DELIVERY)),
+        overdue=Count(
+            "id",
+            filter=(
+                Q(expected_delivery_at__lt=now)
+                & ~Q(status__in=(WorkOrder.DELIVERED, WorkOrder.CANCELLED))
+            ),
+        ),
+        delivered_today=Count(
+            "id",
+            filter=Q(status=WorkOrder.DELIVERED, delivered_at__date=today),
+        ),
+        active_orders=Count("id", filter=Q(status__in=WorkOrder.ACTIVE_STATUSES)),
+    )
+
+
+def work_order_list_url(params=None):
+    url = reverse("backoffice:resource-list", args=["work-orders"])
+    if params:
+        from urllib.parse import urlencode
+        return f"{url}?{urlencode(params)}"
+    return url
+
+
 @management_required
 def dashboard(request):
-    work_orders = scope_queryset(
+    all_work_orders = scope_queryset(
         WorkOrder.objects.select_related("customer", "vehicle", "branch"),
         request.user,
     )
-    invoices = scope_queryset(Invoice.objects.all(), request.user)
-    payments = scope_queryset(Payment.objects.all(), request.user)
-    stocks = scope_queryset(
-        BranchStock.objects.select_related("part", "branch"),
-        request.user,
+    general_manager = is_general_manager(request.user)
+    branches = Branch.objects.filter(is_active=True).order_by("name")
+    selected_branch = request.GET.get("branch", "") if general_manager else ""
+    if selected_branch and selected_branch.isdigit() and branches.filter(pk=selected_branch).exists():
+        work_orders = all_work_orders.filter(branch_id=selected_branch)
+    else:
+        selected_branch = ""
+        work_orders = all_work_orders
+
+    metrics = workshop_metrics(work_orders)
+    branch_param = {"branch": selected_branch} if selected_branch else {}
+    metric_definitions = (
+        ("in_center", "السيارات الموجودة حاليًا", "Vehicles currently in center", {"active": "1"}),
+        ("new", "جديدة / تم استقبالها", "New / received", {"status": WorkOrder.NEW}),
+        ("inspection", "جاري فحصها", "Under inspection", {"status": WorkOrder.INSPECTION}),
+        ("inspected", "تم فحصها", "Inspected", {"status": WorkOrder.INSPECTED}),
+        ("awaiting_approval", "بانتظار موافقة العميل", "Awaiting customer approval", {"status": WorkOrder.AWAITING_APPROVAL}),
+        ("approved", "معتمدة ولم يبدأ العمل", "Approved, not started", {"status": WorkOrder.APPROVED}),
+        ("working", "قيد الصيانة", "Under maintenance", {"status": WorkOrder.WORKING}),
+        ("awaiting_parts", "بانتظار قطع غيار", "Awaiting parts", {"status": WorkOrder.AWAITING_PARTS}),
+        ("testing", "قيد الاختبار", "Under testing", {"status": WorkOrder.TESTING}),
+        ("ready_for_delivery", "جاهزة للتسليم", "Ready for delivery", {"status": WorkOrder.READY_FOR_DELIVERY}),
+        ("overdue", "متأخرة عن التسليم", "Overdue delivery", {"overdue": "1"}),
+        ("delivered_today", "تم تسليمها اليوم", "Delivered today", {"delivered_today": "1"}),
+        ("active_orders", "أوامر الصيانة النشطة", "Active work orders", {"active": "1"}),
     )
-    active_statuses = ("new", "inspection", "approved", "working")
-    status_counts = {
-        item["status"]: item["total"]
-        for item in work_orders.values("status").annotate(total=Count("id"))
-    }
-    status_pipeline = [
+    metric_cards = [
         {
             "key": key,
-            "label": label,
-            "count": status_counts.get(key, 0),
+            "label": ar_label if not is_english() else en_label,
+            "value": metrics[key],
+            "url": work_order_list_url({**params, **branch_param}),
         }
-        for key, label in WorkOrder.STATUS
+        for key, ar_label, en_label, params in metric_definitions
     ]
-    revenue = payments.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-    outstanding = sum(
-        (invoice.remaining_amount for invoice in invoices),
-        Decimal("0.00"),
-    )
+    attention = [card for card in metric_cards if card["key"] in {
+        "overdue", "awaiting_approval", "awaiting_parts", "ready_for_delivery"
+    }]
+
+    branch_comparison = []
+    if general_manager:
+        comparison_data = {
+            row["branch_id"]: row
+            for row in all_work_orders.values("branch_id").annotate(
+                active=Count("id", filter=Q(status__in=WorkOrder.ACTIVE_STATUSES)),
+                overdue=Count("id", filter=Q(expected_delivery_at__lt=timezone.now()) & ~Q(status__in=(WorkOrder.DELIVERED, WorkOrder.CANCELLED))),
+                inspection=Count("id", filter=Q(status=WorkOrder.INSPECTION)),
+                working=Count("id", filter=Q(status=WorkOrder.WORKING)),
+                ready=Count("id", filter=Q(status=WorkOrder.READY_FOR_DELIVERY)),
+            )
+        }
+        for branch in branches:
+            values = comparison_data.get(branch.pk, {})
+            branch_comparison.append({
+                "branch": branch,
+                "active": values.get("active", 0),
+                "overdue": values.get("overdue", 0),
+                "inspection": values.get("inspection", 0),
+                "working": values.get("working", 0),
+                "ready": values.get("ready", 0),
+                "url": f"{reverse('backoffice:dashboard')}?branch={branch.pk}",
+            })
+
     context = base_context(
         request,
         page_title="Dashboard" if is_english() else "مركز القيادة",
-        stats={
-            "active_orders": work_orders.filter(status__in=active_statuses).count(),
-            "customers": Customer.objects.count(),
-            "vehicles": Vehicle.objects.filter(is_active=True).count(),
-            "revenue": revenue,
-        },
-        status_pipeline=status_pipeline,
-        recent_orders=work_orders.order_by("-created_at")[:7],
-        low_stock=stocks.filter(quantity__lte=F("part__minimum_stock")).order_by("quantity")[:6],
-        outstanding=outstanding,
-        pending_messages=ContactMessage.objects.filter(is_resolved=False).count(),
-        pending_reviews=WorkshopReview.objects.filter(is_approved=False).count(),
-        active_branches=Branch.objects.filter(is_active=True).count(),
-        total_parts=SparePart.objects.filter(is_active=True).count(),
+        metrics=metrics,
+        metric_cards=metric_cards,
+        attention=attention,
+        general_manager=general_manager,
+        branches=branches,
+        selected_branch=selected_branch,
+        branch_comparison=branch_comparison,
     )
     return render(request, "backoffice/dashboard.html", context)
 
@@ -163,6 +293,24 @@ def resource_list(request, slug):
     if resource.select_related:
         queryset = queryset.select_related(*resource.select_related)
     queryset = scope_queryset(queryset, request.user).order_by(*resource.order_by)
+    if resource.model is WorkOrder:
+        status = request.GET.get("status", "")
+        if status in dict(WorkOrder.STATUS):
+            queryset = queryset.filter(status=status)
+        branch = request.GET.get("branch", "")
+        if branch.isdigit():
+            queryset = queryset.filter(branch_id=branch)
+        if request.GET.get("overdue") == "1":
+            queryset = queryset.filter(expected_delivery_at__lt=timezone.now()).exclude(
+                status__in=(WorkOrder.DELIVERED, WorkOrder.CANCELLED)
+            )
+        if request.GET.get("delivered_today") == "1":
+            queryset = queryset.filter(
+                status=WorkOrder.DELIVERED,
+                delivered_at__date=timezone.localdate(),
+            )
+        if request.GET.get("active") == "1":
+            queryset = queryset.filter(status__in=WorkOrder.ACTIVE_STATUSES)
     query = request.GET.get("q", "").strip()
     if query and resource.search_fields:
         conditions = Q()
@@ -176,12 +324,19 @@ def resource_list(request, slug):
         queryset = queryset.filter(conditions)
     paginator = Paginator(queryset, 20)
     page = paginator.get_page(request.GET.get("page"))
+    preserved_query = request.GET.copy()
+    preserved_query.pop("page", None)
     context = base_context(
         request,
         page_title=resource.title,
         resource=resource,
         page=page,
         query=query,
+        filters_active=any(
+            request.GET.get(key)
+            for key in ("status", "branch", "overdue", "delivered_today", "active")
+        ),
+        preserved_query=preserved_query.urlencode(),
         can_add=not resource.readonly and (
             request.user.is_superuser
             or request.user.has_perm(
@@ -253,6 +408,8 @@ def resource_delete(request, slug, pk):
                 if is_english()
                 else "تعذر الحذف لوجود بيانات مرتبطة. عطّل السجل أو عدّل ارتباطاته أولًا.",
             )
+        except ValidationError as error:
+            messages.error(request, "; ".join(error.messages))
         return redirect("backoffice:resource-list", slug=slug)
     return render(
         request,

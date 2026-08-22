@@ -3,53 +3,48 @@
 <section class="bo-hero">
     <div>
         <span class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}نظرة تشغيلية مباشرة{% else %}Live operational overview{% endif %}</span>
-        <h2>{% if LANGUAGE_CODE == 'ar' %}أهلًا {{ request.user.first_name|default:request.user.username }}، هذه صورة المركز اليوم.{% else %}Welcome {{ request.user.first_name|default:request.user.username }}, here is today’s service center overview.{% endif %}</h2>
-        <p>{% if LANGUAGE_CODE == 'ar' %}المؤشرات المهمة والمهام التي تحتاج انتباهك مجمعة في مكان واحد.{% else %}Key metrics and tasks that need your attention are collected in one place.{% endif %}</p>
+        <h2>{% if LANGUAGE_CODE == 'ar' %}ماذا يحدث الآن{% if selected_branch %} في الفرع المحدد{% elif not general_manager %} داخل فرعك{% else %} في المركز بالكامل{% endif %}؟{% else %}What is happening across the workshop now?{% endif %}</h2>
+        <p>{% if LANGUAGE_CODE == 'ar' %}حالة السيارات والأعمال التي تحتاج تدخلًا، محدثة من أوامر الصيانة الحالية.{% else %}Vehicle status and work requiring intervention, based on current work orders.{% endif %}</p>
     </div>
     <a href="{% url 'backoffice:resource-add' 'work-orders' %}" class="bo-primary-button">+ {% if LANGUAGE_CODE == 'ar' %}أمر صيانة جديد{% else %}New work order{% endif %}</a>
 </section>
 
-<section class="bo-stat-grid">
-    <article class="bo-stat-card accent"><div><span>{% if LANGUAGE_CODE == 'ar' %}أوامر نشطة{% else %}Active orders{% endif %}</span><strong>{{ stats.active_orders }}</strong></div><i>◫</i><small>{% if LANGUAGE_CODE == 'ar' %}قيد الاستقبال أو التنفيذ{% else %}In reception or progress{% endif %}</small></article>
-    <article class="bo-stat-card"><div><span>{% if LANGUAGE_CODE == 'ar' %}إجمالي العملاء{% else %}Total customers{% endif %}</span><strong>{{ stats.customers }}</strong></div><i>◎</i><small>{{ stats.vehicles }} {% if LANGUAGE_CODE == 'ar' %}مركبة نشطة{% else %}active vehicles{% endif %}</small></article>
-    <article class="bo-stat-card"><div><span>{% if LANGUAGE_CODE == 'ar' %}المبالغ المحصلة{% else %}Collected revenue{% endif %}</span><strong>{{ stats.revenue|floatformat:2 }}</strong></div><i>◉</i><small>{% if LANGUAGE_CODE == 'ar' %}ر.س عبر جميع الدفعات{% else %}SAR across all payments{% endif %}</small></article>
-    <article class="bo-stat-card warning"><div><span>{% if LANGUAGE_CODE == 'ar' %}قيد التحصيل{% else %}Outstanding{% endif %}</span><strong>{{ outstanding|floatformat:2 }}</strong></div><i>◈</i><small>{% if LANGUAGE_CODE == 'ar' %}ر.س متبقية على الفواتير{% else %}SAR remaining on invoices{% endif %}</small></article>
+{% if general_manager %}
+<form class="bo-branch-filter" method="get">
+    <label for="dashboard-branch">{% if LANGUAGE_CODE == 'ar' %}عرض بيانات{% else %}Show data for{% endif %}</label>
+    <select class="bo-control" id="dashboard-branch" name="branch" onchange="this.form.submit()">
+        <option value="">{% if LANGUAGE_CODE == 'ar' %}جميع الفروع{% else %}All branches{% endif %}</option>
+        {% for branch in branches %}<option value="{{ branch.pk }}" {% if selected_branch == branch.pk|stringformat:'s' %}selected{% endif %}>{{ branch.name }}</option>{% endfor %}
+    </select>
+    <noscript><button class="bo-primary-button" type="submit">{% if LANGUAGE_CODE == 'ar' %}تطبيق{% else %}Apply{% endif %}</button></noscript>
+</form>
+{% endif %}
+
+<section class="bo-card bo-attention-card">
+    <div class="bo-card-head"><div><p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}أولوية عاجلة{% else %}Immediate priority{% endif %}</p><h3>{% if LANGUAGE_CODE == 'ar' %}يحتاج انتباهك{% else %}Needs your attention{% endif %}</h3></div></div>
+    <div class="bo-attention-grid">
+        {% for item in attention %}
+        <a class="bo-attention" href="{{ item.url }}"><span>{% if item.key == 'overdue' %}!{% else %}◫{% endif %}</span><div><strong>{{ item.label }} — {{ item.value }}</strong><small>{% if LANGUAGE_CODE == 'ar' %}اضغط لعرض أوامر الصيانة المطابقة{% else %}Open the matching work orders{% endif %}</small></div><b>←</b></a>
+        {% endfor %}
+    </div>
 </section>
 
-<section class="bo-dashboard-grid">
-    <article class="bo-card bo-span-2">
-        <div class="bo-card-head"><div><p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}مسار العمل{% else %}Workflow{% endif %}</p><h3>{% if LANGUAGE_CODE == 'ar' %}حالة أوامر الصيانة{% else %}Work order status{% endif %}</h3></div><a href="{% url 'backoffice:resource-list' 'work-orders' %}">{% if LANGUAGE_CODE == 'ar' %}عرض الكل{% else %}View all{% endif %}</a></div>
-        <div class="bo-pipeline">
-            {% for stage in status_pipeline %}
-                <div><span>{{ forloop.counter|stringformat:"02d" }}</span><strong>{{ stage.count }}</strong><small>{{ stage.label }}</small></div>
-            {% endfor %}
-        </div>
-        <div class="bo-table-wrap">
-            <table><thead><tr><th>{% if LANGUAGE_CODE == 'ar' %}الأمر{% else %}Order{% endif %}</th><th>{% if LANGUAGE_CODE == 'ar' %}العميل والمركبة{% else %}Customer and vehicle{% endif %}</th><th>{% if LANGUAGE_CODE == 'ar' %}الفرع{% else %}Branch{% endif %}</th><th>{% if LANGUAGE_CODE == 'ar' %}الحالة{% else %}Status{% endif %}</th></tr></thead>
-            <tbody>
-                {% for order in recent_orders %}
-                    <tr><td><a href="{% url 'backoffice:resource-edit' 'work-orders' order.pk %}">#{{ order.pk }}</a></td><td><strong>{{ order.customer.full_name }}</strong><small>{{ order.vehicle }}</small></td><td>{{ order.branch }}</td><td><span class="bo-status status-{{ order.status }}">{{ order.get_status_display }}</span></td></tr>
-                {% empty %}<tr><td colspan="4" class="bo-empty">{% if LANGUAGE_CODE == 'ar' %}لا توجد أوامر صيانة بعد.{% else %}No work orders yet.{% endif %}</td></tr>{% endfor %}
-            </tbody></table>
-        </div>
-    </article>
-    <aside class="bo-stack">
-        <article class="bo-card">
-            <div class="bo-card-head"><div><p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}تنبيهات{% else %}Alerts{% endif %}</p><h3>{% if LANGUAGE_CODE == 'ar' %}تحتاج انتباهك{% else %}Needs your attention{% endif %}</h3></div></div>
-            <a class="bo-attention" href="{% url 'backoffice:resource-list' 'messages' %}"><span>✉</span><div><strong>{{ pending_messages }} {% if LANGUAGE_CODE == 'ar' %}رسائل مفتوحة{% else %}open messages{% endif %}</strong><small>{% if LANGUAGE_CODE == 'ar' %}طلبات العملاء غير المعالجة{% else %}Unresolved customer requests{% endif %}</small></div><b>←</b></a>
-            <a class="bo-attention" href="{% url 'backoffice:resource-list' 'reviews' %}"><span>★</span><div><strong>{{ pending_reviews }} {% if LANGUAGE_CODE == 'ar' %}تقييمات معلقة{% else %}pending reviews{% endif %}</strong><small>{% if LANGUAGE_CODE == 'ar' %}بانتظار المراجعة والنشر{% else %}Awaiting review and publishing{% endif %}</small></div><b>←</b></a>
-        </article>
-        <article class="bo-card">
-            <div class="bo-card-head"><div><p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}المخزون{% else %}Inventory{% endif %}</p><h3>{% if LANGUAGE_CODE == 'ar' %}كميات منخفضة{% else %}Low stock{% endif %}</h3></div><a href="{% url 'backoffice:resource-list' 'stock' %}">{% if LANGUAGE_CODE == 'ar' %}التفاصيل{% else %}Details{% endif %}</a></div>
-            <div class="bo-low-list">
-                {% for stock in low_stock %}<div><span><strong>{{ stock.part.name }}</strong><small>{{ stock.branch.name }}</small></span><b>{{ stock.quantity }}</b></div>
-                {% empty %}<p class="bo-empty">{% if LANGUAGE_CODE == 'ar' %}المخزون ضمن الحدود الآمنة.{% else %}Inventory is within safe limits.{% endif %}</p>{% endfor %}
-            </div>
-        </article>
-        <article class="bo-mini-grid">
-            <div><strong>{{ active_branches }}</strong><span>{% if LANGUAGE_CODE == 'ar' %}فروع نشطة{% else %}Active branches{% endif %}</span></div>
-            <div><strong>{{ total_parts }}</strong><span>{% if LANGUAGE_CODE == 'ar' %}قطعة متاحة{% else %}Available parts{% endif %}</span></div>
-        </article>
-    </aside>
+<section class="bo-stat-grid bo-workshop-stats">
+    {% for item in metric_cards %}
+    <a class="bo-stat-card {% if item.key == 'in_center' or item.key == 'active_orders' %}accent{% elif item.key == 'overdue' %}warning{% endif %}" href="{{ item.url }}">
+        <div><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div><i>{% if item.key == 'overdue' %}!{% else %}◫{% endif %}</i><small>{% if LANGUAGE_CODE == 'ar' %}عرض القائمة المفلترة{% else %}View filtered list{% endif %}</small>
+    </a>
+    {% endfor %}
 </section>
+
+{% if general_manager %}
+<section class="bo-card">
+    <div class="bo-card-head"><div><p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}مقارنة سريعة{% else %}Quick comparison{% endif %}</p><h3>{% if LANGUAGE_CODE == 'ar' %}حالة الفروع{% else %}Branch status{% endif %}</h3></div></div>
+    <div class="bo-branch-grid">
+        {% for item in branch_comparison %}
+        <a class="bo-branch-card" href="{{ item.url }}"><h4>{{ item.branch.name }}</h4><strong>{{ item.active }} <small>{% if LANGUAGE_CODE == 'ar' %}سيارة نشطة{% else %}active vehicles{% endif %}</small></strong><ul><li><b>{{ item.overdue }}</b> {% if LANGUAGE_CODE == 'ar' %}متأخرة{% else %}overdue{% endif %}</li><li><b>{{ item.inspection }}</b> {% if LANGUAGE_CODE == 'ar' %}قيد الفحص{% else %}in inspection{% endif %}</li><li><b>{{ item.working }}</b> {% if LANGUAGE_CODE == 'ar' %}قيد الصيانة{% else %}in maintenance{% endif %}</li><li><b>{{ item.ready }}</b> {% if LANGUAGE_CODE == 'ar' %}جاهزة للتسليم{% else %}ready{% endif %}</li></ul></a>
+        {% empty %}<p class="bo-empty">{% if LANGUAGE_CODE == 'ar' %}لا توجد فروع نشطة.{% else %}No active branches.{% endif %}</p>{% endfor %}
+    </div>
+</section>
+{% endif %}
 {% endblock %}

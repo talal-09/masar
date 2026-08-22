@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 
 from core.models import Branch, Employee
 from customers.models import Customer, Vehicle
@@ -137,7 +139,7 @@ class BackofficeAccessTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Platform management")
-        self.assertContains(response, "Active orders")
+        self.assertContains(response, "Active work orders")
         self.assertContains(response, "Inventory")
         self.assertNotContains(response, "مركز القيادة")
         self.assertNotContains(response, "أوامر نشطة")
@@ -156,6 +158,92 @@ class BackofficeAccessTests(TestCase):
         )
         self.assertContains(arabic, "مركز القيادة")
         self.assertNotContains(arabic, "Platform management")
+
+
+class DashboardOperationalTests(TestCase):
+    password = "SecurePass!2026"
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.branch_a = Branch.objects.create(
+            name="فرع أبها", address="أبها", phone="0170000001"
+        )
+        cls.branch_b = Branch.objects.create(
+            name="فرع خميس مشيط", address="خميس مشيط", phone="0170000002"
+        )
+        cls.general_user = User.objects.create_user(
+            username="dashboard-general", password=cls.password, is_staff=True
+        )
+        Employee.objects.create(
+            user=cls.general_user, branch=cls.branch_a, job_title="مدير عام",
+            phone="0550000001", role=Employee.GENERAL_MANAGER,
+        )
+        cls.branch_user = User.objects.create_user(
+            username="dashboard-branch", password=cls.password, is_staff=True
+        )
+        Employee.objects.create(
+            user=cls.branch_user, branch=cls.branch_a, job_title="مدير فرع",
+            phone="0550000002", role=Employee.BRANCH_MANAGER,
+        )
+        cls.customer = Customer.objects.create(
+            full_name="عميل اللوحة", phone="0550000003"
+        )
+        cls.orders = []
+        for index, (branch, status) in enumerate((
+            (cls.branch_a, WorkOrder.INSPECTION),
+            (cls.branch_a, WorkOrder.WORKING),
+            (cls.branch_b, WorkOrder.AWAITING_APPROVAL),
+            (cls.branch_b, WorkOrder.READY_FOR_DELIVERY),
+            (cls.branch_b, WorkOrder.DELIVERED),
+        ), start=1):
+            vehicle = Vehicle.objects.create(
+                customer=cls.customer, plate_number=f"ل و ح {index}",
+                chassis_number=f"DASHBOARD-{index}", brand="Toyota",
+                model="Camry", year=2025, color="White", mileage=1000,
+            )
+            order = WorkOrder.objects.create(
+                branch=branch, customer=cls.customer, vehicle=vehicle,
+                description=f"أمر لوحة {index}", mileage=1000,
+            )
+            values = {"status": status}
+            if index == 1:
+                values["expected_delivery_at"] = timezone.now() - timedelta(days=1)
+            if status == WorkOrder.DELIVERED:
+                values["delivered_at"] = timezone.now()
+            WorkOrder.objects.filter(pk=order.pk).update(**values)
+            order.refresh_from_db()
+            cls.orders.append(order)
+
+    def test_branch_manager_only_sees_their_branch_metrics(self):
+        self.client.force_login(self.branch_user)
+        response = self.client.get(reverse("backoffice:dashboard"))
+        self.assertEqual(response.context["metrics"]["active_orders"], 2)
+        self.assertEqual(response.context["metrics"]["overdue"], 1)
+        self.assertFalse(response.context["general_manager"])
+        self.assertNotContains(response, "فرع خميس مشيط")
+
+    def test_general_manager_can_filter_dashboard_by_branch(self):
+        self.client.force_login(self.general_user)
+        overall = self.client.get(reverse("backoffice:dashboard"))
+        self.assertEqual(overall.context["metrics"]["active_orders"], 4)
+        self.assertEqual(overall.context["metrics"]["delivered_today"], 1)
+        self.assertEqual(len(overall.context["branch_comparison"]), 2)
+
+        filtered = self.client.get(
+            reverse("backoffice:dashboard"), {"branch": self.branch_b.pk}
+        )
+        self.assertEqual(filtered.context["metrics"]["active_orders"], 2)
+        self.assertEqual(filtered.context["metrics"]["inspection"], 0)
+        self.assertEqual(filtered.context["metrics"]["ready_for_delivery"], 1)
+
+    def test_dashboard_links_open_the_matching_filtered_orders(self):
+        self.client.force_login(self.general_user)
+        response = self.client.get(
+            reverse("backoffice:resource-list", args=["work-orders"]),
+            {"overdue": "1"},
+        )
+        self.assertEqual(response.context["page"].paginator.count, 1)
+        self.assertEqual(response.context["page"].object_list[0], self.orders[0])
 
 
 class WorkOrderDependentFieldsTests(TestCase):

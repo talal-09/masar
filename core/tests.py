@@ -408,8 +408,8 @@ class CustomerPermissionTests(TestCase):
         self.assertNotContains(response, "Traceback", status_code=500)
 
     def test_past_appointment_is_rejected(self):
-        self.order_one.status = "completed"
-        self.order_one.save(update_fields=["status"])
+        WorkOrder.objects.filter(pk=self.order_one.pk).update(status="completed")
+        self.order_one.refresh_from_db()
         self.login_customer_one()
         response = self.client.post(
             reverse("maintenance:order-create"),
@@ -428,8 +428,8 @@ class CustomerPermissionTests(TestCase):
         self.assertFalse(WorkOrder.objects.filter(description="موعد قديم").exists())
 
     def test_vehicle_delete_get_only_shows_confirmation(self):
-        self.order_one.status = "completed"
-        self.order_one.save(update_fields=["status"])
+        WorkOrder.objects.filter(pk=self.order_one.pk).update(status="completed")
+        self.order_one.refresh_from_db()
         self.login_customer_one()
         response = self.client.get(
             reverse("customers:vehicle-delete", args=[self.vehicle_one.pk])
@@ -465,8 +465,8 @@ class CustomerPermissionTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
     def test_completed_vehicle_is_soft_deleted_without_losing_history(self):
-        self.order_one.status = "completed"
-        self.order_one.save(update_fields=["status"])
+        WorkOrder.objects.filter(pk=self.order_one.pk).update(status="completed")
+        self.order_one.refresh_from_db()
         self.login_customer_one()
         response = self.client.post(
             reverse("customers:vehicle-delete", args=[self.vehicle_one.pk])

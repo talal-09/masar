@@ -4,7 +4,7 @@
 <section class="bo-page-actions">
     <form class="bo-search" method="get">
         <span>⌕</span><input type="search" name="q" value="{{ query }}" placeholder="{% if LANGUAGE_CODE == 'ar' %}ابحث داخل {{ resource.title }}...{% else %}Search {{ resource.title|bo_tr }}...{% endif %}">
-        {% if query %}<a href="{% url 'backoffice:resource-list' resource.slug %}">{% if LANGUAGE_CODE == 'ar' %}مسح{% else %}Clear{% endif %}</a>{% endif %}
+        {% if query or filters_active %}<a href="{% url 'backoffice:resource-list' resource.slug %}">{% if LANGUAGE_CODE == 'ar' %}مسح التصفية{% else %}Clear filters{% endif %}</a>{% endif %}
     </form>
     {% if can_add %}<a class="bo-primary-button" href="{% url 'backoffice:resource-add' resource.slug %}">+ {% if LANGUAGE_CODE == 'ar' %}إضافة {{ resource.singular }}{% else %}Add {{ resource.singular|bo_tr }}{% endif %}</a>{% endif %}
 </section>
@@ -32,9 +32,9 @@
     </div>
     {% if page.paginator.num_pages > 1 %}
         <nav class="bo-pagination">
-            {% if page.has_previous %}<a href="?q={{ query }}&page={{ page.previous_page_number }}">{% if LANGUAGE_CODE == 'ar' %}السابق{% else %}Previous{% endif %}</a>{% endif %}
+            {% if page.has_previous %}<a href="?{% if preserved_query %}{{ preserved_query }}&{% endif %}page={{ page.previous_page_number }}">{% if LANGUAGE_CODE == 'ar' %}السابق{% else %}Previous{% endif %}</a>{% endif %}
             <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
-            {% if page.has_next %}<a href="?q={{ query }}&page={{ page.next_page_number }}">{% if LANGUAGE_CODE == 'ar' %}التالي{% else %}Next{% endif %}</a>{% endif %}
+            {% if page.has_next %}<a href="?{% if preserved_query %}{{ preserved_query }}&{% endif %}page={{ page.next_page_number }}">{% if LANGUAGE_CODE == 'ar' %}التالي{% else %}Next{% endif %}</a>{% endif %}
         </nav>
     {% endif %}
 </section>

@@ -10,16 +10,15 @@
         >{{ order.get_status_display }}</span>
     </div>
 
-    <section class="mt-7 rounded-3xl border border-slate-200 bg-white p-6"><h2 class="text-xl font-black">مراحل الطلب</h2><ol class="mt-6 grid gap-3 sm:grid-cols-4 lg:grid-cols-8">
-        <li class="rounded-2xl bg-teal-50 p-3 text-sm font-bold text-teal-800">1. تم الإنشاء<time class="mt-1 block text-xs font-normal">{{ order.created_at|date:'Y/m/d H:i' }}</time></li>
-        <li class="rounded-2xl {% if order.status == 'new' %}bg-amber-50 text-amber-800{% else %}bg-teal-50 text-teal-800{% endif %} p-3 text-sm font-bold">2. انتظار المراجعة</li>
-        <li class="rounded-2xl {% if order.status == 'new' %}bg-slate-100 text-slate-400{% else %}bg-teal-50 text-teal-800{% endif %} p-3 text-sm font-bold">3. قبول الطلب</li>
-        <li class="rounded-2xl {% if order.status == 'inspection' %}bg-amber-50 text-amber-800{% elif order.status == 'new' %}bg-slate-100 text-slate-400{% else %}bg-teal-50 text-teal-800{% endif %} p-3 text-sm font-bold">4. الفحص</li>
-        <li class="rounded-2xl {% if quote.status == 'pending' %}bg-amber-50 text-amber-800{% elif quote %}bg-teal-50 text-teal-800{% else %}bg-slate-100 text-slate-400{% endif %} p-3 text-sm font-bold">5. اعتماد العرض</li>
-        <li class="rounded-2xl {% if order.status == 'working' %}bg-amber-50 text-amber-800{% elif order.status == 'completed' or order.status == 'delivered' %}bg-teal-50 text-teal-800{% else %}bg-slate-100 text-slate-400{% endif %} p-3 text-sm font-bold">6. الإصلاح{% if order.started_at %}<time class="mt-1 block text-xs font-normal">{{ order.started_at|date:'Y/m/d H:i' }}</time>{% endif %}</li>
-        <li class="rounded-2xl {% if order.status == 'completed' %}bg-amber-50 text-amber-800{% elif order.status == 'delivered' %}bg-teal-50 text-teal-800{% else %}bg-slate-100 text-slate-400{% endif %} p-3 text-sm font-bold">7. مكتمل{% if order.completed_at %}<time class="mt-1 block text-xs font-normal">{{ order.completed_at|date:'Y/m/d H:i' }}</time>{% endif %}</li>
-        <li class="rounded-2xl {% if order.status == 'delivered' %}bg-teal-50 text-teal-800{% else %}bg-slate-100 text-slate-400{% endif %} p-3 text-sm font-bold">8. تم التسليم</li>
-    </ol></section>
+    <section class="mt-7 rounded-3xl border border-slate-200 bg-white p-6">
+        <h2 class="text-xl font-black">مراحل الطلب</h2>
+        {% if order.status == 'awaiting_parts' %}<p class="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-black text-amber-800">أمر الصيانة بانتظار توفر قطع الغيار.</p>{% elif order.status == 'cancelled' %}<p class="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-700">تم إلغاء أمر الصيانة والاحتفاظ به كسجل تاريخي.</p>{% endif %}
+        <ol class="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-9">
+            {% for step in workflow_steps %}
+                <li class="rounded-2xl p-3 text-sm font-bold {% if step.is_current %}bg-amber-50 text-amber-800{% elif step.is_complete %}bg-teal-50 text-teal-800{% else %}bg-slate-100 text-slate-400{% endif %}">{{ forloop.counter }}. {{ step.label }}{% if step.status == 'new' %}<time class="mt-1 block text-xs font-normal">{{ order.created_at|date:'Y/m/d H:i' }}</time>{% elif step.status == 'working' and order.started_at %}<time class="mt-1 block text-xs font-normal">{{ order.started_at|date:'Y/m/d H:i' }}</time>{% elif step.status == 'ready_for_delivery' and order.completed_at %}<time class="mt-1 block text-xs font-normal">{{ order.completed_at|date:'Y/m/d H:i' }}</time>{% endif %}</li>
+            {% endfor %}
+        </ol>
+    </section>
 
     <div class="mt-8 grid gap-6 lg:grid-cols-3">
         <section class="space-y-6 lg:col-span-2">

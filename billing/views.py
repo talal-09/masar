@@ -122,9 +122,14 @@ def invoice_pdf(request, pk):
 
     y -= 15
     amounts = [
+        ("مجموع الخدمات", invoice.services_total),
+        ("مجموع قطع الغيار", invoice.parts_total),
         ("المجموع الفرعي", invoice.subtotal),
+        ("الخصم", -invoice.discount),
         ("الضريبة", invoice.tax),
         ("الإجمالي", invoice.total),
+        ("المدفوع", invoice.paid_amount),
+        ("المتبقي", invoice.remaining_amount),
     ]
     for label, amount in amounts:
         if label == "الإجمالي":
