@@ -19,10 +19,15 @@ def remember_previous_status(sender, instance, **kwargs):
 @receiver(post_save, sender=WorkOrder)
 def notify_customer_of_status_change(sender, instance, created, **kwargs):
     updates = {}
-    if instance.status == "working" and not instance.started_at:
+    if instance.status == WorkOrder.WORKING and not instance.started_at:
         updates["started_at"] = timezone.now()
-    if instance.status in {"completed", "delivered"} and not instance.completed_at:
+    if instance.status in {
+        WorkOrder.READY_FOR_DELIVERY,
+        WorkOrder.COMPLETED,
+    } and not instance.completed_at:
         updates["completed_at"] = timezone.now()
+    if instance.status == WorkOrder.DELIVERED and not instance.delivered_at:
+        updates["delivered_at"] = timezone.now()
     if updates:
         WorkOrder.objects.filter(pk=instance.pk).update(**updates)
 
@@ -57,4 +62,4 @@ def recalculate_existing_invoice(sender, instance, **kwargs):
 
     invoice = Invoice.objects.filter(work_order=instance.work_order).first()
     if invoice:
-        invoice.recalculate()
+        invoice.recalculate(sync_from_work_order=True)

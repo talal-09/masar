@@ -63,3 +63,42 @@ if (workOrderForm) {
         );
     });
 }
+
+const invoiceForm = document.querySelector("[data-invoice-form]");
+if (invoiceForm) {
+    const workOrder = invoiceForm.querySelector("#id_work_order");
+    const discount = invoiceForm.querySelector("#id_discount");
+    const preview = invoiceForm.querySelector("[data-invoice-preview]");
+    let previewTimer;
+
+    const refreshInvoicePreview = async () => {
+        if (!workOrder?.value) {
+            preview.hidden = true;
+            return;
+        }
+        const query = new URLSearchParams({
+            work_order: workOrder.value,
+            discount: discount?.value || "0",
+            invoice: invoiceForm.dataset.invoiceId || "",
+        });
+        try {
+            const response = await fetch(`${invoiceForm.dataset.previewUrl}?${query}`);
+            if (!response.ok) throw new Error("preview request failed");
+            const data = await response.json();
+            ["services", "parts", "subtotal", "tax", "total"].forEach((name) => {
+                const target = preview.querySelector(`[data-preview-${name}]`);
+                target.textContent = `${data[name]}${name === "total" ? " ر.س" : ""}`;
+            });
+            preview.hidden = false;
+        } catch (_error) {
+            preview.hidden = true;
+        }
+    };
+    const schedulePreview = () => {
+        window.clearTimeout(previewTimer);
+        previewTimer = window.setTimeout(refreshInvoicePreview, 200);
+    };
+    workOrder?.addEventListener("change", schedulePreview);
+    discount?.addEventListener("input", schedulePreview);
+    refreshInvoicePreview();
+}

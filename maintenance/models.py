@@ -10,14 +10,51 @@ from core.i18n import tr
 
 
 class WorkOrder(models.Model):
+    NEW = "new"
+    INSPECTION = "inspection"
+    INSPECTED = "inspected"
+    AWAITING_APPROVAL = "awaiting_approval"
+    APPROVED = "approved"
+    WORKING = "working"
+    AWAITING_PARTS = "awaiting_parts"
+    TESTING = "testing"
+    READY_FOR_DELIVERY = "ready_for_delivery"
+    COMPLETED = "completed"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
+
     STATUS = [
-        ("new", tr("New")),
-        ("inspection", tr("Inspection")),
-        ("approved", tr("Approved")),
-        ("working", tr("In progress")),
-        ("completed", tr("Completed")),
-        ("delivered", tr("Delivered")),
+        (NEW, tr("New")),
+        (INSPECTION, "بانتظار الفحص"),
+        (INSPECTED, "تم الفحص"),
+        (AWAITING_APPROVAL, "بانتظار موافقة العميل"),
+        (APPROVED, tr("Approved")),
+        (WORKING, tr("In progress")),
+        (AWAITING_PARTS, "بانتظار قطع الغيار"),
+        (TESTING, "قيد الاختبار"),
+        (READY_FOR_DELIVERY, "جاهز للتسليم"),
+        (COMPLETED, tr("Completed")),
+        (DELIVERED, tr("Delivered")),
+        (CANCELLED, "ملغي"),
     ]
+    ALLOWED_TRANSITIONS = {
+        NEW: {INSPECTION, CANCELLED},
+        INSPECTION: {INSPECTED, CANCELLED},
+        INSPECTED: {AWAITING_APPROVAL, APPROVED, CANCELLED},
+        AWAITING_APPROVAL: {APPROVED, CANCELLED},
+        APPROVED: {WORKING, AWAITING_PARTS, CANCELLED},
+        WORKING: {AWAITING_PARTS, TESTING},
+        AWAITING_PARTS: {WORKING},
+        TESTING: {WORKING, READY_FOR_DELIVERY},
+        READY_FOR_DELIVERY: {DELIVERED},
+        COMPLETED: {DELIVERED},
+        DELIVERED: set(),
+        CANCELLED: set(),
+    }
+    ACTIVE_STATUSES = {
+        NEW, INSPECTION, INSPECTED, AWAITING_APPROVAL, APPROVED,
+        WORKING, AWAITING_PARTS, TESTING, READY_FOR_DELIVERY,
+    }
 
     branch = models.ForeignKey(Branch, on_delete=models.PROTECT, verbose_name=tr("Branch"))
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, verbose_name=tr("Customer"))
@@ -37,12 +74,15 @@ class WorkOrder(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS,
-        default="new",
+        default=NEW,
         verbose_name=tr("Status"),
     )
 
     created_at = models.DateTimeField(tr("Created at"), auto_now_add=True)
     scheduled_at = models.DateTimeField("موعد الصيانة", null=True, blank=True)
+    expected_delivery_at = models.DateTimeField(
+        "موعد التسليم المتوقع", null=True, blank=True
+    )
     center_notes = models.TextField("ملاحظات المركز", blank=True)
     assigned_technician = models.ForeignKey(
         Employee,
@@ -55,6 +95,7 @@ class WorkOrder(models.Model):
     )
     started_at = models.DateTimeField("تاريخ بدء العمل", null=True, blank=True)
     completed_at = models.DateTimeField("تاريخ انتهاء العمل", null=True, blank=True)
+    delivered_at = models.DateTimeField("تاريخ التسليم", null=True, blank=True)
 
     class Meta:
         verbose_name = tr("Work order")
@@ -63,7 +104,11 @@ class WorkOrder(models.Model):
             models.UniqueConstraint(
                 fields=("vehicle",),
                 condition=Q(
-                    status__in=("new", "inspection", "approved", "working")
+                    status__in=(
+                        "new", "inspection", "inspected", "awaiting_approval",
+                        "approved", "working", "awaiting_parts", "testing",
+                        "ready_for_delivery",
+                    )
                 ),
                 name="one_active_work_order_per_vehicle",
             )
@@ -73,6 +118,36 @@ class WorkOrder(models.Model):
         return f"WO-{self.id}"
 
     def clean(self):
+        previous_status = None
+        if self.pk:
+            previous_status = (
+                type(self).objects.filter(pk=self.pk)
+                .values_list("status", flat=True)
+                .first()
+            )
+        if (
+            previous_status
+            and previous_status != self.status
+            and self.status not in self.ALLOWED_TRANSITIONS.get(
+                previous_status,
+                set(),
+            )
+        ):
+            labels = dict(self.STATUS)
+            raise ValidationError({
+                "status": (
+                    f"لا يمكن نقل أمر الصيانة من حالة «{labels.get(previous_status, previous_status)}» "
+                    f"مباشرة إلى «{labels.get(self.status, self.status)}»."
+                )
+            })
+        if (
+            previous_status != self.status
+            and self.status == self.WORKING
+            and not self.assigned_technician_id
+        ):
+            raise ValidationError({
+                "assigned_technician": "يجب تحديد فني مسؤول قبل بدء الصيانة."
+            })
         if (
             self.vehicle_id
             and self.customer_id
@@ -97,6 +172,14 @@ class WorkOrder(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+    def get_allowed_status_choices(self):
+        allowed = self.ALLOWED_TRANSITIONS.get(self.status, set())
+        return [
+            (value, label)
+            for value, label in self.STATUS
+            if value in allowed
+        ]
 
 
 class WorkOrderService(models.Model):

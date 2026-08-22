@@ -19,6 +19,8 @@
                 {% endfor %}
             </div>
             <div class="mt-8 space-y-4 border-t border-slate-200 pt-6">
+                <div class="flex justify-between"><span>مجموع الخدمات</span><strong>{{ invoice.services_total }} ر.س</strong></div>
+                <div class="flex justify-between"><span>مجموع قطع الغيار</span><strong>{{ invoice.parts_total }} ر.س</strong></div>
                 <div class="flex justify-between"><span>المجموع الفرعي</span><strong>{{ invoice.subtotal }} ر.س</strong></div>
                 {% if invoice.discount %}<div class="flex justify-between text-rose-700"><span>الخصم</span><strong>-{{ invoice.discount }} ر.س</strong></div>{% endif %}
                 <div class="flex justify-between"><span>الضريبة</span><strong>{{ invoice.tax }} ر.س</strong></div>

@@ -2,7 +2,7 @@
 {% load backoffice_tags %}
 {% block content %}
 <section class="bo-form-layout">
-    <form method="post" enctype="multipart/form-data" class="bo-card bo-form-card"{% if resource.slug == 'work-orders' %} data-work-order-form data-options-url="{% url 'backoffice:work-order-options' %}"{% endif %}>
+    <form method="post" enctype="multipart/form-data" class="bo-card bo-form-card"{% if resource.slug == 'work-orders' %} data-work-order-form data-options-url="{% url 'backoffice:work-order-options' %}"{% elif resource.slug == 'invoices' %} data-invoice-form data-preview-url="{% url 'backoffice:invoice-preview' %}" data-invoice-id="{{ instance.pk|default:'' }}"{% endif %}>
         {% csrf_token %}
         {% if form.non_field_errors %}<div class="bo-alert error">{{ form.non_field_errors }}</div>{% endif %}
         <div class="bo-form-grid">
@@ -15,6 +15,15 @@
                 </div>
             {% endfor %}
         </div>
+        {% if resource.slug == 'invoices' %}
+            <div class="bo-invoice-preview" data-invoice-preview hidden>
+                <div><span>الخدمات</span><strong data-preview-services>0.00</strong></div>
+                <div><span>قطع الغيار</span><strong data-preview-parts>0.00</strong></div>
+                <div><span>المجموع الفرعي</span><strong data-preview-subtotal>0.00</strong></div>
+                <div><span>الضريبة 15%</span><strong data-preview-tax>0.00</strong></div>
+                <div><span>الإجمالي</span><strong data-preview-total>0.00 ر.س</strong></div>
+            </div>
+        {% endif %}
         <div class="bo-form-actions">
             <button class="bo-primary-button" type="submit">{% if LANGUAGE_CODE == 'ar' %}حفظ التغييرات{% else %}Save changes{% endif %}</button>
             <a class="bo-ghost-button" href="{% url 'backoffice:resource-list' resource.slug %}">{% if LANGUAGE_CODE == 'ar' %}إلغاء{% else %}Cancel{% endif %}</a>

@@ -78,6 +78,38 @@ def order_detail(request, pk):
     )
     quote = getattr(order, "quote", None)
     invoice = getattr(order, "invoice", None)
+    main_workflow = [
+        (WorkOrder.NEW, "جديد"),
+        (WorkOrder.INSPECTION, "بانتظار الفحص"),
+        (WorkOrder.INSPECTED, "تم الفحص"),
+        (WorkOrder.AWAITING_APPROVAL, "بانتظار الموافقة"),
+        (WorkOrder.APPROVED, "معتمد"),
+        (WorkOrder.WORKING, "قيد الصيانة"),
+        (WorkOrder.TESTING, "قيد الاختبار"),
+        (WorkOrder.READY_FOR_DELIVERY, "جاهز للتسليم"),
+        (WorkOrder.DELIVERED, "تم التسليم"),
+    ]
+    current_index = next(
+        (
+            index
+            for index, (status, _label) in enumerate(main_workflow)
+            if status == order.status
+        ),
+        (
+            7
+            if order.status == WorkOrder.COMPLETED
+            else 4 if order.status == WorkOrder.AWAITING_PARTS else -1
+        ),
+    )
+    workflow_steps = [
+        {
+            "status": status,
+            "label": label,
+            "is_current": status == order.status,
+            "is_complete": current_index >= 0 and index < current_index,
+        }
+        for index, (status, label) in enumerate(main_workflow)
+    ]
     return render(
         request,
         "maintenance/order_detail.html",
@@ -85,6 +117,7 @@ def order_detail(request, pk):
             "order": order,
             "quote": quote,
             "invoice": invoice,
+            "workflow_steps": workflow_steps,
             "show_technician": getattr(
                 settings,
                 "SHOW_TECHNICIAN_TO_CUSTOMERS",

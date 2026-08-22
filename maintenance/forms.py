@@ -14,7 +14,7 @@ FIELD_CLASS = (
 
 
 class MaintenanceRequestForm(forms.ModelForm):
-    ACTIVE_STATUSES = {"new", "inspection", "approved", "working"}
+    ACTIVE_STATUSES = WorkOrder.ACTIVE_STATUSES
 
     class Meta:
         model = WorkOrder

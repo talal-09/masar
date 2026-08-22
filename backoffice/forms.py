@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
@@ -7,6 +9,7 @@ from django.utils.translation import get_language
 from core.models import Employee
 from customers.models import Customer, Vehicle
 from maintenance.models import WorkOrder
+from billing.models import Invoice
 
 from .access import is_platform_manager, scope_queryset
 
@@ -166,7 +169,8 @@ class WorkOrderManagementForm(ManagementModelForm):
         model = WorkOrder
         fields = (
             "branch", "customer", "vehicle", "created_by", "description",
-            "mileage", "status", "scheduled_at", "center_notes",
+            "mileage", "status", "scheduled_at", "expected_delivery_at",
+            "center_notes",
             "assigned_technician", "started_at", "completed_at",
         )
 
@@ -176,6 +180,29 @@ class WorkOrderManagementForm(ManagementModelForm):
 
         customer_id = self._selected_id("customer")
         branch_id = self._selected_id("branch")
+
+        status_choices = []
+        if self.instance.pk:
+            status_choices = [
+                (self.instance.status, self.instance.get_status_display()),
+                *self.instance.get_allowed_status_choices(),
+            ]
+        else:
+            status_choices = [(WorkOrder.NEW, dict(WorkOrder.STATUS)[WorkOrder.NEW])]
+        submitted_status = (
+            self.data.get(self.add_prefix("status")) if self.is_bound else None
+        )
+        if (
+            submitted_status in dict(WorkOrder.STATUS)
+            and submitted_status not in {value for value, _ in status_choices}
+        ):
+            status_choices.append(
+                (submitted_status, dict(WorkOrder.STATUS)[submitted_status])
+            )
+        self.fields["status"].choices = status_choices
+        self.fields["status"].help_text = (
+            "تظهر فقط الحالة الحالية والخطوات التالية المسموح بها."
+        )
 
         vehicles = Vehicle.objects.none()
         if customer_id:
@@ -292,11 +319,69 @@ class WorkOrderManagementForm(ManagementModelForm):
         return cleaned_data
 
 
+class InvoiceManagementForm(ManagementModelForm):
+    class Meta:
+        model = Invoice
+        fields = ("work_order", "discount")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["work_order"].disabled = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        work_order = cleaned_data.get("work_order")
+        discount = cleaned_data.get("discount") or Decimal("0.00")
+        if not work_order:
+            return cleaned_data
+        subtotal = (
+            self.instance.subtotal
+            if self.instance.pk
+            else sum(
+                (
+                    item.service.price
+                    for item in work_order.services.select_related("service")
+                ),
+                Decimal("0.00"),
+            ) + sum(
+                (
+                    item.unit_price * item.quantity
+                    for item in work_order.installed_parts.all()
+                ),
+                Decimal("0.00"),
+            )
+        )
+        if not self.instance.pk and subtotal == 0:
+            raise forms.ValidationError("لا توجد بنود قابلة للفوترة.")
+        if discount < 0:
+            self.add_error("discount", "لا يمكن أن يكون الخصم سالبًا.")
+        if discount > subtotal:
+            self.add_error("discount", "لا يمكن أن يتجاوز الخصم المجموع الفرعي.")
+        return cleaned_data
+
+    @transaction.atomic
+    def save(self, commit=True):
+        is_new = not self.instance.pk
+        invoice = super().save(commit=False)
+        if is_new:
+            invoice.subtotal = Decimal("0.00")
+            invoice.tax = Decimal("0.00")
+            invoice.total = Decimal("0.00")
+            invoice.status = "pending"
+        if commit:
+            invoice.save()
+            invoice.recalculate(sync_from_work_order=is_new)
+        return invoice
+
+
 def form_for_resource(resource):
     if resource.model is Employee:
         return EmployeeManagementForm
     if resource.model is WorkOrder:
         return WorkOrderManagementForm
+    if resource.model is Invoice:
+        return InvoiceManagementForm
     meta = type(
         "Meta",
         (),
