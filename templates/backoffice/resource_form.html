@@ -2,7 +2,7 @@
 {% load backoffice_tags %}
 {% block content %}
 <section class="bo-form-layout">
-    <form method="post" enctype="multipart/form-data" class="bo-card bo-form-card">
+    <form method="post" enctype="multipart/form-data" class="bo-card bo-form-card"{% if resource.slug == 'work-orders' %} data-work-order-form data-options-url="{% url 'backoffice:work-order-options' %}"{% endif %}>
         {% csrf_token %}
         {% if form.non_field_errors %}<div class="bo-alert error">{{ form.non_field_errors }}</div>{% endif %}
         <div class="bo-form-grid">

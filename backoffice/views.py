@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, F, Q, Sum
 from django.db.models.deletion import ProtectedError
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils.translation import get_language
@@ -15,6 +15,7 @@ from django.utils.translation import get_language
 from billing.models import Invoice, Payment
 from core.models import Branch, ContactMessage, WorkshopReview
 from customers.models import Customer, Vehicle
+from core.models import Employee
 from inventory.models import BranchStock, SparePart
 from maintenance.models import WorkOrder
 
@@ -59,6 +60,44 @@ def base_context(request, **extra):
     }
     context.update(extra)
     return context
+
+
+@management_required
+def work_order_options(request):
+    require_model_permission(request.user, WorkOrder, "view")
+    option_type = request.GET.get("type", "")
+    parent_id = request.GET.get("parent", "")
+    if not parent_id.isdigit():
+        return JsonResponse({"options": []})
+
+    if option_type == "vehicles":
+        queryset = Vehicle.objects.filter(
+            customer_id=parent_id,
+            is_active=True,
+        ).order_by("brand", "model", "year")
+    elif option_type in {"technicians", "receptionists"}:
+        role = (
+            Employee.TECHNICIAN
+            if option_type == "technicians"
+            else Employee.RECEPTIONIST
+        )
+        queryset = scope_queryset(
+            Employee.objects.filter(
+                branch_id=parent_id,
+                role=role,
+                user__is_active=True,
+            ).select_related("user"),
+            request.user,
+        ).order_by("user__first_name", "user__username")
+    else:
+        return JsonResponse({"options": []}, status=400)
+
+    return JsonResponse({
+        "options": [
+            {"value": item.pk, "label": str(item)}
+            for item in queryset
+        ]
+    })
 
 
 def is_english():

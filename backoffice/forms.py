@@ -1,9 +1,12 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
+from django.db.models import Q
 from django.utils.translation import get_language
 
 from core.models import Employee
+from customers.models import Customer, Vehicle
+from maintenance.models import WorkOrder
 
 from .access import is_platform_manager, scope_queryset
 
@@ -158,9 +161,142 @@ class EmployeeManagementForm(forms.ModelForm):
         return employee
 
 
+class WorkOrderManagementForm(ManagementModelForm):
+    class Meta:
+        model = WorkOrder
+        fields = (
+            "branch", "customer", "vehicle", "created_by", "description",
+            "mileage", "status", "scheduled_at", "center_notes",
+            "assigned_technician", "started_at", "completed_at",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["customer"].queryset = Customer.objects.order_by("full_name")
+
+        customer_id = self._selected_id("customer")
+        branch_id = self._selected_id("branch")
+
+        vehicles = Vehicle.objects.none()
+        if customer_id:
+            vehicles = Vehicle.objects.filter(
+                customer_id=customer_id,
+                is_active=True,
+            ).order_by("brand", "model", "year")
+            submitted_vehicle_id = (
+                self.data.get(self.add_prefix("vehicle")) if self.is_bound else None
+            )
+            retained_vehicle_id = (
+                submitted_vehicle_id
+                if str(submitted_vehicle_id).isdigit()
+                else self.instance.vehicle_id if self.instance.pk else None
+            )
+            if retained_vehicle_id:
+                vehicles = Vehicle.objects.filter(
+                    Q(pk=retained_vehicle_id)
+                    | Q(
+                        customer_id=customer_id,
+                        is_active=True,
+                    )
+                ).order_by("brand", "model", "year")
+        self.fields["vehicle"].queryset = vehicles
+        self.fields["vehicle"].empty_label = (
+            "اختر السيارة" if customer_id else "اختر العميل أولاً"
+        )
+        self.fields["vehicle"].widget.attrs.update({
+            "data-dependent": "vehicle",
+            "disabled": not bool(customer_id),
+        })
+
+        technicians = Employee.objects.none()
+        receptionists = Employee.objects.none()
+        if branch_id:
+            employees = Employee.objects.filter(
+                branch_id=branch_id,
+                user__is_active=True,
+            ).select_related("user").order_by("user__first_name", "user__username")
+            technicians = employees.filter(role=Employee.TECHNICIAN)
+            receptionists = employees.filter(role=Employee.RECEPTIONIST)
+            if self.is_bound:
+                submitted_technician_id = self.data.get(
+                    self.add_prefix("assigned_technician")
+                )
+                submitted_receptionist_id = self.data.get(
+                    self.add_prefix("created_by")
+                )
+                if str(submitted_technician_id).isdigit():
+                    technicians = Employee.objects.filter(
+                        Q(pk=submitted_technician_id)
+                        | Q(
+                            branch_id=branch_id,
+                            role=Employee.TECHNICIAN,
+                            user__is_active=True,
+                        )
+                    ).select_related("user")
+                if str(submitted_receptionist_id).isdigit():
+                    receptionists = Employee.objects.filter(
+                        Q(pk=submitted_receptionist_id)
+                        | Q(
+                            branch_id=branch_id,
+                            role=Employee.RECEPTIONIST,
+                            user__is_active=True,
+                        )
+                    ).select_related("user")
+        self.fields["assigned_technician"].queryset = technicians
+        self.fields["created_by"].queryset = receptionists
+        self.fields["assigned_technician"].widget.attrs.update({
+            "data-dependent": "technician",
+            "disabled": not bool(branch_id),
+        })
+        self.fields["created_by"].widget.attrs.update({
+            "data-dependent": "receptionist",
+            "disabled": not bool(branch_id),
+        })
+
+    def _selected_id(self, field_name):
+        if self.is_bound:
+            value = self.data.get(self.add_prefix(field_name))
+            return value if str(value).isdigit() else None
+        return getattr(self.instance, f"{field_name}_id", None)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        customer = cleaned_data.get("customer")
+        vehicle = cleaned_data.get("vehicle")
+        branch = cleaned_data.get("branch")
+        technician = cleaned_data.get("assigned_technician")
+        receptionist = cleaned_data.get("created_by")
+        if customer and vehicle and vehicle.customer_id != customer.pk:
+            self.add_error(
+                "vehicle",
+                "السيارة المحددة لا تتبع العميل المختار.",
+            )
+        if branch and technician and (
+            technician.branch_id != branch.pk
+            or technician.role != Employee.TECHNICIAN
+            or not technician.user.is_active
+        ):
+            self.add_error(
+                "assigned_technician",
+                "اختر فنيًا فعالًا من نفس الفرع.",
+            )
+        if branch and receptionist and (
+            receptionist.branch_id != branch.pk
+            or receptionist.role != Employee.RECEPTIONIST
+            or not receptionist.user.is_active
+        ):
+            self.add_error(
+                "created_by",
+                "اختر موظف استقبال فعالًا من نفس الفرع.",
+            )
+        return cleaned_data
+
+
 def form_for_resource(resource):
     if resource.model is Employee:
         return EmployeeManagementForm
+    if resource.model is WorkOrder:
+        return WorkOrderManagementForm
     meta = type(
         "Meta",
         (),

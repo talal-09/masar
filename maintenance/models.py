@@ -79,7 +79,7 @@ class WorkOrder(models.Model):
             and self.vehicle.customer_id != self.customer_id
         ):
             raise ValidationError(
-                {"vehicle": "يجب أن تكون المركبة مملوكة للعميل المحدد."}
+                {"vehicle": "السيارة المحددة لا تتبع العميل المختار."}
             )
         if (
             self.assigned_technician_id
