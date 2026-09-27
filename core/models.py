@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from .i18n import tr
 
@@ -14,6 +15,12 @@ class Branch(models.Model):
         max_length=200,
         blank=True,
         default="الأحد - الخميس، 8:00 ص - 6:00 م",
+    )
+    appointment_capacity = models.PositiveSmallIntegerField(
+        tr("Appointment capacity"),
+        default=1,
+        validators=[MinValueValidator(1), MaxValueValidator(20)],
+        help_text=tr("Maximum vehicles accepted at the same time."),
     )
 
     class Meta:
@@ -124,3 +131,62 @@ class WorkshopReview(models.Model):
 
     def __str__(self):
         return f"{self.customer} - {self.rating}/5"
+
+
+class LoginAttempt(models.Model):
+    key_hash = models.CharField(max_length=64, unique=True)
+    failures = models.PositiveSmallIntegerField(default=0)
+    window_started_at = models.DateTimeField()
+    blocked_until = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        verbose_name = "محاولة دخول"
+        verbose_name_plural = "محاولات الدخول"
+
+    def __str__(self):
+        return f"Login throttle {self.key_hash[:10]}"
+
+
+class AuditLog(models.Model):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    SECURITY = "security"
+    ACTIONS = [
+        (CREATE, "إنشاء"),
+        (UPDATE, "تحديث"),
+        (DELETE, "حذف"),
+        (SECURITY, "أمان"),
+    ]
+
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        verbose_name="المنفذ",
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        verbose_name="الفرع",
+    )
+    action = models.CharField("الإجراء", max_length=20, choices=ACTIONS)
+    object_type = models.CharField("نوع السجل", max_length=100)
+    object_id = models.CharField("رقم السجل", max_length=64, blank=True)
+    object_repr = models.CharField("وصف السجل", max_length=255)
+    details = models.JSONField("التفاصيل", default=dict, blank=True)
+    created_at = models.DateTimeField("وقت الإجراء", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "سجل تدقيق"
+        verbose_name_plural = "سجل التدقيق"
+        ordering = ("-created_at", "-pk")
+
+    def __str__(self):
+        return f"{self.get_action_display()} - {self.object_repr}"

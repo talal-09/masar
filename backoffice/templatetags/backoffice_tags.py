@@ -7,6 +7,7 @@ register = template.Library()
 
 ENGLISH = {
     "التشغيل": "Operations", "العملاء": "Customers", "الصيانة": "Maintenance",
+    "الأمان": "Security",
     "التواصل": "Communication", "الخدمات": "Services", "المخزون": "Inventory",
     "المالية": "Finance", "مركز القيادة": "Dashboard", "الفروع": "Branches",
     "الموظفون": "Employees", "السيارات": "Vehicles", "أوامر الصيانة": "Work orders",
@@ -18,6 +19,8 @@ ENGLISH = {
     "حركات المخزون": "Stock movements", "الفواتير": "Invoices",
     "بنود الفواتير": "Invoice items", "المدفوعات": "Payments",
     "رسائل العملاء": "Customer messages", "تقييمات الورشة": "Workshop reviews",
+    "سجل التدقيق": "Audit log", "المنفذ": "Actor", "الإجراء": "Action",
+    "نوع السجل": "Object type", "رقم السجل": "Object ID", "وقت الإجراء": "Created at",
     "نشط": "Active", "غير نشط": "Inactive", "مدير عام": "General manager",
     "مدير فرع": "Branch manager", "موظف استقبال": "Receptionist", "فني": "Technician",
     "محاسب": "Accountant", "مسؤول مخزون": "Inventory manager",
@@ -27,6 +30,7 @@ ENGLISH = {
     "أمر صيانة": "Work order", "فاتورة": "Invoice", "دفعة": "Payment",
     "تقييم الورشة": "Workshop review", "رسالة عميل": "Customer message",
     "العنوان": "Address", "رقم الهاتف": "Phone number", "ساعات العمل": "Business hours",
+    "سعة الموعد الواحد": "Appointment capacity",
     "الدور": "Role", "المسمى الوظيفي": "Job title", "الجوال": "Mobile",
     "الاسم": "Name", "رقم اللوحة": "Plate number", "رقم الهيكل": "Chassis number",
     "الشركة": "Brand", "الموديل": "Model", "سنة الصنع": "Year", "اللون": "Color",
@@ -39,6 +43,11 @@ ENGLISH = {
     "المورد": "Supplier", "سعر البيع": "Selling price", "الحد الأدنى للمخزون": "Minimum stock",
     "المجموع الفرعي": "Subtotal", "الخصم": "Discount", "الإجمالي": "Total",
     "المبلغ": "Amount", "طريقة الدفع": "Payment method", "المرجع": "Reference",
+    "بانتظار الفحص": "Awaiting inspection", "تم الفحص": "Inspected",
+    "بانتظار موافقة العميل": "Awaiting customer approval",
+    "بانتظار قطع الغيار": "Awaiting parts", "قيد الاختبار": "Testing",
+    "جاهز للتسليم": "Ready for delivery", "ملغي": "Cancelled",
+    "إنشاء": "Create", "تحديث": "Update", "حذف": "Delete", "أمان": "Security",
     "الموضوع": "Subject", "تمت المعالجة": "Resolved", "التعليق": "Comment",
     "معتمد للنشر": "Approved for publishing", "التقييم": "Rating",
 }

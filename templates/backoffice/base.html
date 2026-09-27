@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{% static 'backoffice/app.css' %}">
 </head>
 <body>
+    <a class="bo-skip-link" href="#main-content">{% if LANGUAGE_CODE == 'ar' %}انتقل إلى المحتوى{% else %}Skip to content{% endif %}</a>
     <div class="bo-shell">
         <aside class="bo-sidebar" id="bo-sidebar">
             <div class="bo-brand">
@@ -23,6 +24,11 @@
                 <a href="{% url 'backoffice:dashboard' %}" class="bo-nav-link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}">
                     <span>⌘</span><strong>{% if LANGUAGE_CODE == 'ar' %}مركز القيادة{% else %}Dashboard{% endif %}</strong>
                 </a>
+                {% if request.user.is_superuser or perms.billing.view_invoice %}
+                <a href="{% url 'backoffice:reports' %}" class="bo-nav-link {% if request.resolver_match.url_name == 'reports' %}is-active{% endif %}">
+                    <span>▥</span><strong>{% if LANGUAGE_CODE == 'ar' %}التقارير{% else %}Reports{% endif %}</strong>
+                </a>
+                {% endif %}
                 {% for section, resources in management_navigation.items %}
                     <p class="bo-nav-label">{{ section|bo_tr }}</p>
                     {% for item in resources %}
@@ -45,7 +51,7 @@
             </div>
         </aside>
         <button class="bo-overlay" type="button" data-sidebar-close aria-label="{% if LANGUAGE_CODE == 'ar' %}إغلاق القائمة{% else %}Close menu{% endif %}"></button>
-        <main class="bo-main">
+        <main class="bo-main" id="main-content" tabindex="-1">
             <header class="bo-topbar">
                 <button class="bo-icon-button bo-menu" type="button" data-sidebar-open aria-label="{% if LANGUAGE_CODE == 'ar' %}فتح القائمة{% else %}Open menu{% endif %}">☰</button>
                 <div>

@@ -59,6 +59,7 @@ def scope_queryset(queryset, user):
         "payment": "invoice__work_order__branch_id",
         "branchstock": "branch_id",
         "stockmovement": "stock__branch_id",
+        "auditlog": "branch_id",
     }
     lookup = branch_lookups.get(model_name)
     if lookup:

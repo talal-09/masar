@@ -8,6 +8,8 @@ ARABIC = {
     "Branch name": "اسم الفرع",
     "Address": "العنوان",
     "Phone number": "رقم الهاتف",
+    "Appointment capacity": "سعة الموعد الواحد",
+    "Maximum vehicles accepted at the same time.": "أقصى عدد سيارات يمكن استقبالها في الوقت نفسه.",
     "Active": "نشط",
     "Employees": "الموظفون",
     "Employee": "موظف",

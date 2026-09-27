@@ -1,6 +1,13 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordResetForm,
+    SetPasswordForm,
+    UserCreationForm,
+)
 from django.contrib.auth.models import User
+
+from .security import LoginThrottleMixin
 
 
 INPUT_CLASSES = (
@@ -63,7 +70,7 @@ class SignUpForm(UserCreationForm):
         return phone
 
 
-class StyledAuthenticationForm(AuthenticationForm):
+class StyledAuthenticationForm(LoginThrottleMixin, AuthenticationForm):
     def __init__(self, request=None, *args, **kwargs):
         super().__init__(request=request, *args, **kwargs)
         self.fields["username"].label = "اسم المستخدم"
@@ -95,3 +102,29 @@ class StyledAuthenticationForm(AuthenticationForm):
                 "هذا الحساب غير مرتبط بملف عميل. تواصل مع إدارة المركز.",
                 code="missing_customer_profile",
             )
+
+
+class StyledPasswordResetForm(PasswordResetForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].label = "البريد الإلكتروني"
+        self.fields["email"].widget.attrs.update({
+            "class": INPUT_CLASSES,
+            "placeholder": "name@example.com",
+            "autocomplete": "email",
+        })
+
+
+class StyledSetPasswordForm(SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        labels = {
+            "new_password1": "كلمة المرور الجديدة",
+            "new_password2": "تأكيد كلمة المرور الجديدة",
+        }
+        for name, field in self.fields.items():
+            field.label = labels[name]
+            field.widget.attrs.update({
+                "class": INPUT_CLASSES,
+                "autocomplete": "new-password",
+            })

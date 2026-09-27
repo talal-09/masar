@@ -1,3 +1,5 @@
+import csv
+from datetime import date
 from decimal import Decimal
 
 from django.contrib import messages
@@ -5,19 +7,21 @@ from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q, Sum
 from django.db.models.deletion import ProtectedError
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.translation import get_language
 
 from billing.models import Invoice, Payment
-from core.models import Branch
+from core.audit import record_audit
+from core.models import AuditLog, Branch
 from customers.models import Customer, Vehicle
 from core.models import Employee
 from maintenance.models import WorkOrder
+from inventory.models import BranchStock
 
 from .access import (
     is_platform_manager,
@@ -285,6 +289,147 @@ def dashboard(request):
     return render(request, "backoffice/dashboard.html", context)
 
 
+def _report_date(value):
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _csv_value(value):
+    text = str(value)
+    if text.startswith(("=", "+", "-", "@", "\t", "\r")):
+        return f"'{text}"
+    return text
+
+
+@management_required
+def reports(request):
+    require_model_permission(request.user, Invoice, "view")
+    date_from = _report_date(request.GET.get("date_from", ""))
+    date_to = _report_date(request.GET.get("date_to", ""))
+
+    work_orders = scope_queryset(WorkOrder.objects.all(), request.user)
+    invoices = scope_queryset(
+        Invoice.objects.select_related("work_order__branch"),
+        request.user,
+    )
+    payments = scope_queryset(
+        Payment.objects.select_related("invoice__work_order__branch"),
+        request.user,
+    )
+    stock = scope_queryset(
+        BranchStock.objects.select_related("part", "branch"),
+        request.user,
+    )
+    if date_from:
+        work_orders = work_orders.filter(created_at__date__gte=date_from)
+        invoices = invoices.filter(created_at__date__gte=date_from)
+        payments = payments.filter(paid_at__date__gte=date_from)
+    if date_to:
+        work_orders = work_orders.filter(created_at__date__lte=date_to)
+        invoices = invoices.filter(created_at__date__lte=date_to)
+        payments = payments.filter(paid_at__date__lte=date_to)
+    payments = payments.filter(invoice__in=invoices)
+
+    billed = invoices.aggregate(value=Sum("total"))["value"] or Decimal("0.00")
+    collected = payments.aggregate(value=Sum("amount"))["value"] or Decimal("0.00")
+    outstanding = max(billed - collected, Decimal("0.00"))
+    financial = {
+        "billed": billed,
+        "collected": collected,
+        "outstanding": outstanding,
+        "invoices": invoices.count(),
+    }
+    operations = {
+        "orders": work_orders.count(),
+        "active": work_orders.filter(status__in=WorkOrder.ACTIVE_STATUSES).count(),
+        "delivered": work_orders.filter(status=WorkOrder.DELIVERED).count(),
+        "cancelled": work_orders.filter(status=WorkOrder.CANCELLED).count(),
+    }
+    status_rows = list(
+        work_orders.values("status").annotate(total=Count("id")).order_by("status")
+    )
+    status_labels = dict(WorkOrder.STATUS)
+    for row in status_rows:
+        row["label"] = status_labels.get(row["status"], row["status"])
+    low_stock = stock.filter(quantity__lte=F("part__minimum_stock")).order_by(
+        "quantity", "part__name"
+    )[:20]
+    technician_filter = Q()
+    if date_from:
+        technician_filter &= Q(assigned_work_orders__created_at__date__gte=date_from)
+    if date_to:
+        technician_filter &= Q(assigned_work_orders__created_at__date__lte=date_to)
+    technicians = scope_queryset(
+        Employee.objects.filter(
+            role=Employee.TECHNICIAN,
+            user__is_active=True,
+        ).select_related("user", "branch"),
+        request.user,
+    ).annotate(
+        assigned_total=Count(
+            "assigned_work_orders",
+            filter=technician_filter,
+            distinct=True,
+        ),
+        active_total=Count(
+            "assigned_work_orders",
+            filter=technician_filter & Q(
+                assigned_work_orders__status__in=WorkOrder.ACTIVE_STATUSES
+            ),
+            distinct=True,
+        ),
+        delivered_total=Count(
+            "assigned_work_orders",
+            filter=technician_filter & Q(
+                assigned_work_orders__status=WorkOrder.DELIVERED
+            ),
+            distinct=True,
+        ),
+    ).order_by("-delivered_total", "user__first_name")[:20]
+
+    if request.GET.get("export") == "csv":
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="masar-report.csv"'
+        response.write("\ufeff")
+        writer = csv.writer(response)
+        writer.writerow(("Section", "Metric", "Value"))
+        rows = (
+            ("Financial", "Billed", f'{financial["billed"]:.2f}'),
+            ("Financial", "Collected", f'{financial["collected"]:.2f}'),
+            ("Financial", "Outstanding", f'{financial["outstanding"]:.2f}'),
+            ("Operations", "Work orders", operations["orders"]),
+            ("Operations", "Active", operations["active"]),
+            ("Operations", "Delivered", operations["delivered"]),
+            ("Operations", "Cancelled", operations["cancelled"]),
+        )
+        for row in rows:
+            writer.writerow(tuple(_csv_value(value) for value in row))
+        return response
+
+    export_query = request.GET.copy()
+    export_query["export"] = "csv"
+    return render(
+        request,
+        "backoffice/reports.html",
+        base_context(
+            request,
+            page_title="Reports" if is_english() else "التقارير",
+            financial=financial,
+            operations=operations,
+            status_rows=status_rows,
+            low_stock=low_stock,
+            technicians=technicians,
+            date_from=date_from.isoformat() if date_from else "",
+            date_to=date_to.isoformat() if date_to else "",
+            export_query=export_query.urlencode(),
+        ),
+    )
+
+
 @management_required
 def resource_list(request, slug):
     resource = get_resource(slug)
@@ -364,7 +509,14 @@ def resource_form(request, slug, pk=None):
         request_user=request.user,
     )
     if request.method == "POST" and form.is_valid():
+        changed_fields = tuple(form.changed_data)
         saved = form.save()
+        record_audit(
+            request.user,
+            AuditLog.UPDATE if instance else AuditLog.CREATE,
+            saved,
+            changed_fields=changed_fields,
+        )
         messages.success(
             request,
             (
@@ -393,8 +545,21 @@ def resource_delete(request, slug, pk):
     queryset = scope_queryset(resource.model.objects.all(), request.user)
     instance = get_object_or_404(queryset, pk=pk)
     if request.method == "POST":
+        object_id = instance.pk
+        object_repr = str(instance)
+        branch = getattr(instance, "branch", None)
+        if branch is None:
+            branch = getattr(getattr(instance, "work_order", None), "branch", None)
         try:
             instance.delete()
+            record_audit(
+                request.user,
+                AuditLog.DELETE,
+                instance,
+                object_id=object_id,
+                object_repr=object_repr,
+                branch=branch,
+            )
             messages.success(
                 request,
                 f"{resource.singular} was deleted successfully."

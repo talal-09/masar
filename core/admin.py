@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Branch, ContactMessage, Employee, WorkshopReview
+from .models import AuditLog, Branch, ContactMessage, Employee, WorkshopReview
 
 
 @admin.register(Branch)
@@ -80,3 +80,23 @@ class WorkshopReviewAdmin(admin.ModelAdmin):
     @admin.action(description="اعتماد التقييمات المحددة للنشر")
     def approve_reviews(self, request, queryset):
         queryset.update(is_approved=True)
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "actor", "action", "object_type", "object_id", "branch")
+    list_filter = ("action", "object_type", "branch", "created_at")
+    search_fields = ("actor__username", "object_type", "object_id", "object_repr")
+    readonly_fields = (
+        "actor", "branch", "action", "object_type", "object_id",
+        "object_repr", "details", "created_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

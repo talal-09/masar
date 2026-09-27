@@ -74,10 +74,4 @@ class MaintenanceRequestForm(forms.ModelForm):
         scheduled_at = self.cleaned_data.get("scheduled_at")
         if scheduled_at and scheduled_at < timezone.now():
             raise forms.ValidationError("اختر موعدًا حاليًا أو قادمًا.")
-        if scheduled_at and WorkOrder.objects.filter(
-            branch=self.cleaned_data.get("branch"),
-            scheduled_at=scheduled_at,
-            status__in=self.ACTIVE_STATUSES,
-        ).exists():
-            raise forms.ValidationError("هذا الموعد محجوز، اختر موعدًا آخر.")
         return scheduled_at

@@ -74,9 +74,10 @@
 </head>
 
 <body>
-    {% include 'site/header.html' %}
+<a href="#main-content" class="fixed right-4 top-2 z-[100] -translate-y-20 rounded-xl bg-slate-950 px-4 py-3 font-bold text-white focus:translate-y-0">انتقل إلى المحتوى</a>
+{% include 'site/header.html' %}
 
-    <main>
+<main id="main-content" tabindex="-1">
         <section id="home" class="mesh-bg relative isolate overflow-hidden pb-24 pt-36 sm:pb-32 sm:pt-44 lg:min-h-screen lg:pt-48">
             <div class="grid-fade pointer-events-none absolute inset-0 -z-10"></div>
             <div class="pointer-events-none absolute -left-36 top-28 -z-10 size-96 rounded-full bg-teal-300/20 blur-3xl"></div>

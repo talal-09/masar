@@ -24,7 +24,8 @@
     </style>
 </head>
 <body class="min-h-screen bg-[#052f38]">
-    <main class="relative grid min-h-screen place-items-center overflow-hidden px-5 py-12">
+    <a href="#main-content" class="fixed right-4 top-2 z-50 -translate-y-20 rounded-xl bg-white px-4 py-3 font-bold text-slate-950 focus:translate-y-0">انتقل إلى المحتوى</a>
+    <main id="main-content" tabindex="-1" class="relative grid min-h-screen place-items-center overflow-hidden px-5 py-12">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(184,154,92,.25),transparent_30%),radial-gradient(circle_at_80%_80%,rgba(20,107,114,.28),transparent_30%)]"></div>
         <a href="{% url 'home' %}" class="absolute right-5 top-5 z-10 inline-flex items-center gap-2 text-sm font-bold text-slate-400 transition hover:text-white sm:right-8 sm:top-8">
             <span>→</span> العودة للرئيسية

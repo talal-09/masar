@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from billing.models import Invoice, InvoiceItem, Payment
-from core.models import Branch, ContactMessage, Employee, WorkshopReview
+from core.models import AuditLog, Branch, ContactMessage, Employee, WorkshopReview
 from customers.models import Customer, Vehicle
 from inventory.models import BranchStock, SparePart, StockMovement
 from maintenance.models import (
@@ -59,6 +59,7 @@ RESOURCES = (
     Resource("payments", Payment, "◉", "المالية", ("invoice", "amount", "method", "reference", "paid_at"), ("invoice__id", "reference"), ("invoice",)),
     Resource("messages", ContactMessage, "✉", "التواصل", ("subject", "user", "created_at", "is_resolved"), ("subject", "message", "user__username"), ("user",), form_fields=("user", "subject", "message", "is_resolved")),
     Resource("reviews", WorkshopReview, "★", "التواصل", ("customer", "rating", "comment", "is_approved", "created_at"), ("customer__full_name", "comment"), ("customer",), form_fields=("customer", "rating", "comment", "is_approved")),
+    Resource("audit-logs", AuditLog, "◌", "الأمان", ("created_at", "actor", "action", "object_type", "object_id", "branch"), ("actor__username", "object_type", "object_id", "object_repr"), ("actor", "branch"), readonly=True),
 )
 
 RESOURCE_MAP = {resource.slug: resource for resource in RESOURCES}

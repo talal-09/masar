@@ -10,6 +10,8 @@ from django.views.decorators.http import require_POST
 
 from customers.access import customer_required, get_owned_or_403
 from customers.models import Vehicle
+from core.audit import record_audit
+from core.models import AuditLog
 
 from .forms import MaintenanceRequestForm
 from .models import Notification, Quote, WorkOrder
@@ -58,6 +60,7 @@ def order_create(request):
         order.created_by = None
         order.status = "new"
         order.save()
+        record_audit(request.user, AuditLog.CREATE, order, form.changed_data)
         messages.success(request, "تم إرسال طلب الصيانة وحجز الموعد.")
         return redirect("maintenance:order-detail", pk=order.pk)
     return render(request, "maintenance/order_form.html", {"form": form})
@@ -163,6 +166,13 @@ def quote_response(request, pk, decision):
     quote.status = Quote.APPROVED if decision == "approve" else Quote.REJECTED
     quote.responded_at = timezone.now()
     quote.save(update_fields=["status", "responded_at"])
+    record_audit(
+        request.user,
+        AuditLog.UPDATE,
+        quote,
+        ("status", "responded_at"),
+        {"decision": decision},
+    )
     messages.success(request, "تم تسجيل قرارك على عرض السعر.")
     return redirect("maintenance:order-detail", pk=quote.work_order_id)
 
