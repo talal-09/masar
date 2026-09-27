@@ -141,8 +141,10 @@ class BackofficeAccessTests(TestCase):
         self.assertContains(response, "Platform management")
         self.assertContains(response, "Active work orders")
         self.assertContains(response, "Inventory")
+        self.assertContains(response, "Work order images")
         self.assertNotContains(response, "مركز القيادة")
         self.assertNotContains(response, "أوامر نشطة")
+        self.assertNotContains(response, "صور الصيانة")
 
         next_response = self.client.get(
             reverse("backoffice:resource-list", args=["vehicles"])
