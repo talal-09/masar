@@ -1,0 +1,40 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  django-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret-key-for-masar-tests-never-use-in-production
+      DJANGO_DEBUG: "True"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      USE_TARGET_DATABASE: "0"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Check migrations
+        run: python manage.py makemigrations --check --dry-run
+      - name: Run Django checks
+        run: python manage.py check
+      - name: Build static asset manifest
+        run: python manage.py collectstatic --noinput --clear
+      - name: Run tests
+        run: python manage.py test
+      - name: Check production settings
+        run: python manage.py check --deploy
+        env:
+          DJANGO_DEBUG: "False"
+

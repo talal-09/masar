@@ -1,5 +1,12 @@
 # Masar
 
+[![Tests](https://github.com/talal-09/masar/actions/workflows/tests.yml/badge.svg)](https://github.com/talal-09/masar/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-b5914f.svg)](LICENSE)
+
+**Documentation language: English · [العربية](README.ar.md)**
+
+**[Explore the live bilingual Masar showcase](https://talal-09.github.io/masar/)**
+
 <p align="center">
   <img src="static/images/masar-logo.svg" alt="Masar logo" width="180">
 </p>
@@ -7,6 +14,14 @@
 Masar is an Arabic-first, full-stack workshop management platform built with Django. It connects customer-facing maintenance workflows with the operational tools needed to manage vehicles, services, spare parts, invoices, payments, and workshop branches.
 
 > This repository is a portfolio and learning project. The local development data is synthetic and is not intended for production use.
+
+## Project Preview
+
+<p align="center">
+  <img src="docs/assets/masar-showcase.png" alt="Masar bilingual workshop-management showcase with an operations dashboard and service workflow" width="100%">
+</p>
+
+> The public showcase uses synthetic demonstration data only. It does not connect to the Django application or expose operational records.
 
 ## Features
 
@@ -52,6 +67,9 @@ Masar is an Arabic-first, full-stack workshop management platform built with Dja
 - Database transactions for multi-step financial and inventory operations
 - Pagination and optimized related-object queries
 - Automated tests covering authentication, permissions, workflows, inventory, and billing
+- Continuous integration checks for migrations, Django configuration, tests, and production deployment settings
+
+See the [security policy](SECURITY.md) for private vulnerability reporting guidance.
 
 ## Local Setup
 
@@ -107,6 +125,8 @@ python manage.py test
 
 Current local verification: **64 tests passing**.
 
+Every push and pull request to `main` runs the same checks through GitHub Actions.
+
 ## Deployment Notes
 
 Masar includes a `Procfile` for Gunicorn and supports PostgreSQL, WhiteNoise static files, and Cloudinary media storage. Before deployment:
@@ -121,3 +141,7 @@ Masar includes a `Procfile` for Gunicorn and supports PostgreSQL, WhiteNoise sta
 ## Author
 
 Built by [Talal](https://github.com/talal-09) as a practical full-stack software development project.
+
+## License
+
+Masar is available under the [MIT License](LICENSE).
