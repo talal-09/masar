@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.utils.translation import get_language
 
 from core.models import Employee
+from core.security import LoginThrottleMixin
 from customers.models import Customer, Vehicle
 from maintenance.models import WorkOrder
 from billing.models import Invoice
@@ -14,7 +15,7 @@ from billing.models import Invoice
 from .access import is_platform_manager, scope_queryset
 
 
-class ManagementAuthenticationForm(AuthenticationForm):
+class ManagementAuthenticationForm(LoginThrottleMixin, AuthenticationForm):
     error_messages = {
         **AuthenticationForm.error_messages,
         "invalid_login": "اسم المستخدم أو كلمة المرور غير صحيحة.",

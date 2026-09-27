@@ -1,9 +1,12 @@
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db import transaction
+import logging
+
+from django.db import connection, transaction
 from django.db.models import Avg
 from django.contrib.auth.views import redirect_to_login
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 
 from billing.models import Invoice
@@ -16,6 +19,9 @@ from .forms_contact import ContactMessageForm, WorkshopReviewForm
 from .models import Branch, WorkshopReview
 from customers.access import customer_required
 from backoffice.access import management_required
+
+
+logger = logging.getLogger(__name__)
 
 
 def home(request):
@@ -173,6 +179,20 @@ def contact(request):
 def branch_list(request):
     branches = Branch.objects.filter(is_active=True)
     return render(request, "branches.html", {"branches": branches})
+
+
+def health(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+        response = JsonResponse({"status": "ok"})
+    except Exception:
+        logger.exception("Health check failed")
+        response = JsonResponse({"status": "unavailable"}, status=503)
+    response["Cache-Control"] = "no-store"
+    response["X-Robots-Tag"] = "noindex, nofollow"
+    return response
 
 
 def custom_400(request, exception=None):

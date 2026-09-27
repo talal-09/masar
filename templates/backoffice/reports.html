@@ -1,0 +1,34 @@
+{% extends "backoffice/base.html" %}
+{% load backoffice_tags %}
+{% block content %}
+<section class="bo-page-actions">
+    <form class="bo-report-filter" method="get">
+        <label>{% if LANGUAGE_CODE == 'ar' %}من تاريخ{% else %}From{% endif %}<input class="bo-control" type="date" name="date_from" value="{{ date_from }}"></label>
+        <label>{% if LANGUAGE_CODE == 'ar' %}إلى تاريخ{% else %}To{% endif %}<input class="bo-control" type="date" name="date_to" value="{{ date_to }}"></label>
+        <button class="bo-primary-button" type="submit">{% if LANGUAGE_CODE == 'ar' %}تطبيق{% else %}Apply{% endif %}</button>
+        <a class="bo-ghost-button" href="{% url 'backoffice:reports' %}?{{ export_query }}">CSV</a>
+    </form>
+</section>
+
+<section class="bo-stat-grid">
+    <article class="bo-stat-card accent"><div><span>{% if LANGUAGE_CODE == 'ar' %}إجمالي الفواتير{% else %}Total billed{% endif %}</span><strong>{{ financial.billed|floatformat:2 }}</strong></div><i>﷼</i></article>
+    <article class="bo-stat-card"><div><span>{% if LANGUAGE_CODE == 'ar' %}المبالغ المحصلة{% else %}Collected{% endif %}</span><strong>{{ financial.collected|floatformat:2 }}</strong></div><i>✓</i></article>
+    <article class="bo-stat-card warning"><div><span>{% if LANGUAGE_CODE == 'ar' %}المبالغ المتبقية{% else %}Outstanding{% endif %}</span><strong>{{ financial.outstanding|floatformat:2 }}</strong></div><i>!</i></article>
+    <article class="bo-stat-card"><div><span>{% if LANGUAGE_CODE == 'ar' %}أوامر نشطة{% else %}Active orders{% endif %}</span><strong>{{ operations.active }}</strong></div><i>◫</i></article>
+</section>
+
+<section class="bo-report-grid">
+    <article class="bo-card">
+        <div class="bo-card-head"><div><p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}التشغيل{% else %}Operations{% endif %}</p><h3>{% if LANGUAGE_CODE == 'ar' %}توزيع أوامر الصيانة{% else %}Work-order status{% endif %}</h3></div></div>
+        <div class="bo-table-wrap"><table><thead><tr><th>{% if LANGUAGE_CODE == 'ar' %}الحالة{% else %}Status{% endif %}</th><th>{% if LANGUAGE_CODE == 'ar' %}العدد{% else %}Count{% endif %}</th></tr></thead><tbody>{% for row in status_rows %}<tr><td>{{ row.label|bo_tr }}</td><td>{{ row.total }}</td></tr>{% empty %}<tr><td colspan="2" class="bo-empty">{% if LANGUAGE_CODE == 'ar' %}لا توجد بيانات.{% else %}No data.{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+    </article>
+    <article class="bo-card">
+        <div class="bo-card-head"><div><p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}المخزون{% else %}Inventory{% endif %}</p><h3>{% if LANGUAGE_CODE == 'ar' %}قطع عند حد إعادة الطلب{% else %}Low-stock parts{% endif %}</h3></div></div>
+        <div class="bo-table-wrap"><table><thead><tr><th>{% if LANGUAGE_CODE == 'ar' %}القطعة{% else %}Part{% endif %}</th><th>{% if LANGUAGE_CODE == 'ar' %}الفرع{% else %}Branch{% endif %}</th><th>{% if LANGUAGE_CODE == 'ar' %}المتوفر / الحد{% else %}Stock / minimum{% endif %}</th></tr></thead><tbody>{% for item in low_stock %}<tr><td>{{ item.part.name }}</td><td>{{ item.branch.name }}</td><td>{{ item.quantity }} / {{ item.part.minimum_stock }}</td></tr>{% empty %}<tr><td colspan="3" class="bo-empty">{% if LANGUAGE_CODE == 'ar' %}لا توجد تنبيهات مخزون.{% else %}No low-stock alerts.{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+    </article>
+    <article class="bo-card">
+        <div class="bo-card-head"><div><p class="bo-eyebrow">{% if LANGUAGE_CODE == 'ar' %}الفريق{% else %}Team{% endif %}</p><h3>{% if LANGUAGE_CODE == 'ar' %}حمل الفنيين{% else %}Technician workload{% endif %}</h3></div></div>
+        <div class="bo-table-wrap"><table><thead><tr><th>{% if LANGUAGE_CODE == 'ar' %}الفني{% else %}Technician{% endif %}</th><th>{% if LANGUAGE_CODE == 'ar' %}الفرع{% else %}Branch{% endif %}</th><th>{% if LANGUAGE_CODE == 'ar' %}نشطة / مسلمة{% else %}Active / delivered{% endif %}</th></tr></thead><tbody>{% for item in technicians %}<tr><td>{{ item }}</td><td>{{ item.branch.name }}</td><td>{{ item.active_total }} / {{ item.delivered_total }}</td></tr>{% empty %}<tr><td colspan="3" class="bo-empty">{% if LANGUAGE_CODE == 'ar' %}لا توجد بيانات فنيين.{% else %}No technician data.{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+    </article>
+</section>
+{% endblock %}

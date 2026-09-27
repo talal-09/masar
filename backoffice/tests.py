@@ -3,8 +3,10 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 
-from core.models import Branch, Employee
+from billing.models import Invoice, Payment
+from core.models import AuditLog, Branch, Employee
 from customers.models import Customer, Vehicle
 from maintenance.models import WorkOrder
 from backoffice.registry import RESOURCES
@@ -129,6 +131,14 @@ class BackofficeAccessTests(TestCase):
         employee = Employee.objects.get(user__username="new-technician")
         self.assertTrue(employee.user.is_staff)
         self.assertEqual(employee.branch, self.branch_one)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                actor=self.manager_user,
+                action=AuditLog.CREATE,
+                object_type="core.employee",
+                object_id=str(employee.pk),
+            ).exists()
+        )
 
     def test_management_language_switch_persists_and_is_not_mixed(self):
         self.client.force_login(self.manager_user)
@@ -246,6 +256,39 @@ class DashboardOperationalTests(TestCase):
         )
         self.assertEqual(response.context["page"].paginator.count, 1)
         self.assertEqual(response.context["page"].object_list[0], self.orders[0])
+
+    def test_reports_show_financial_metrics_and_export_csv(self):
+        invoice = Invoice.objects.create(
+            work_order=self.orders[-1],
+            subtotal=Decimal("100.00"),
+            tax=Decimal("15.00"),
+            total=Decimal("115.00"),
+        )
+        Payment.objects.create(
+            invoice=invoice,
+            amount=Decimal("40.00"),
+            method="card",
+        )
+        self.client.force_login(self.general_user)
+
+        response = self.client.get(reverse("backoffice:reports"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["financial"]["billed"], Decimal("115.00"))
+        self.assertEqual(response.context["financial"]["collected"], Decimal("40.00"))
+        self.assertEqual(response.context["financial"]["outstanding"], Decimal("75.00"))
+
+        exported = self.client.get(reverse("backoffice:reports"), {"export": "csv"})
+        self.assertEqual(exported.status_code, 200)
+        self.assertEqual(exported["Content-Type"], "text/csv; charset=utf-8")
+        self.assertIn("Financial,Billed,115.00", exported.content.decode("utf-8-sig"))
+
+        self.client.post(
+            reverse("set_language"),
+            {"language": "en", "next": reverse("backoffice:reports")},
+        )
+        english = self.client.get(reverse("backoffice:reports"))
+        self.assertContains(english, "Awaiting customer approval")
+        self.assertNotContains(english, "بانتظار موافقة العميل")
 
 
 class WorkOrderDependentFieldsTests(TestCase):

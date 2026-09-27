@@ -2,11 +2,13 @@ from django.db import models, transaction
 from django.db.models import F, Q
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 
 from core.models import Branch, Employee
 from customers.models import Customer, Vehicle
 from services.models import Service
 from core.i18n import tr
+from core.validators import validate_uploaded_image
 
 
 class WorkOrder(models.Model):
@@ -164,14 +166,29 @@ class WorkOrder(models.Model):
             raise ValidationError(
                 {"assigned_technician": "يجب أن يكون الفني من الفرع المحدد."}
             )
+        if self.branch_id and self.scheduled_at:
+            overlapping_orders = type(self).objects.filter(
+                branch_id=self.branch_id,
+                scheduled_at=self.scheduled_at,
+                status__in=self.ACTIVE_STATUSES,
+            )
+            if self.pk:
+                overlapping_orders = overlapping_orders.exclude(pk=self.pk)
+            if overlapping_orders.count() >= self.branch.appointment_capacity:
+                raise ValidationError({
+                    "scheduled_at": "اكتملت سعة هذا الموعد، اختر وقتًا آخر."
+                })
         if self.completed_at and self.started_at and self.completed_at < self.started_at:
             raise ValidationError(
                 {"completed_at": "تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء."}
             )
 
     def save(self, *args, **kwargs):
-        self.full_clean()
-        return super().save(*args, **kwargs)
+        with transaction.atomic():
+            if self.branch_id and self.scheduled_at:
+                Branch.objects.select_for_update().only("pk").get(pk=self.branch_id)
+            self.full_clean()
+            return super().save(*args, **kwargs)
 
     def get_allowed_status_choices(self):
         allowed = self.ALLOWED_TRANSITIONS.get(self.status, set())
@@ -347,7 +364,14 @@ class WorkOrderImage(models.Model):
         related_name="images",
         verbose_name="أمر الصيانة",
     )
-    image = models.ImageField("الصورة", upload_to="work_orders/%Y/%m/")
+    image = models.ImageField(
+        "الصورة",
+        upload_to="work_orders/%Y/%m/",
+        validators=[
+            FileExtensionValidator(("jpg", "jpeg", "png", "webp")),
+            validate_uploaded_image,
+        ],
+    )
     phase = models.CharField(
         "المرحلة",
         max_length=10,

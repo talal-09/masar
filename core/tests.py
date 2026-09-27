@@ -2,7 +2,9 @@ from decimal import Decimal
 from io import BytesIO
 
 from django.contrib.auth.models import Group, Permission, User
+from django.core import mail
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -11,7 +13,8 @@ from pypdf import PdfReader
 
 from billing.models import Invoice
 from billing.models import Payment
-from core.models import Branch, Employee, WorkshopReview
+from core.models import AuditLog, Branch, Employee, LoginAttempt, WorkshopReview
+from core.validators import MAX_IMAGE_SIZE, validate_uploaded_image
 from customers.models import Customer, Vehicle
 from inventory.models import BranchStock, SparePart, StockMovement
 from maintenance.models import Quote, WorkOrder, WorkOrderPart, WorkOrderService
@@ -477,6 +480,14 @@ class CustomerPermissionTests(TestCase):
         self.assertTrue(
             WorkOrder.objects.filter(pk=self.order_one.pk).exists()
         )
+        self.assertTrue(
+            AuditLog.objects.filter(
+                actor=self.user_one,
+                action=AuditLog.DELETE,
+                object_type="customers.vehicle",
+                object_id=str(self.vehicle_one.pk),
+            ).exists()
+        )
 
     def test_employee_role_is_admin_created_and_grouped(self):
         user = User.objects.create_user(
@@ -576,3 +587,79 @@ class CustomerPermissionTests(TestCase):
                 quantity=2,
                 unit_price=part.selling_price,
             )
+
+
+class SecurityFeatureTests(TestCase):
+    password = "SecurePass!2026"
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="secure-customer",
+            email="secure@example.com",
+            password=cls.password,
+        )
+        Customer.objects.create(
+            user=cls.user,
+            full_name="عميل الأمان",
+            phone="0507777777",
+            email=cls.user.email,
+        )
+
+    def test_health_check_is_minimal_and_not_cached(self):
+        response = self.client.get(reverse("health"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertIn("noindex", response["X-Robots-Tag"])
+
+    def test_repeated_login_failures_temporarily_block_correct_password(self):
+        for _ in range(5):
+            response = self.client.post(
+                reverse("login"),
+                {"username": self.user.username, "password": "wrong-password"},
+            )
+            self.assertEqual(response.status_code, 200)
+
+        blocked = self.client.post(
+            reverse("login"),
+            {"username": self.user.username, "password": self.password},
+        )
+        self.assertEqual(blocked.status_code, 200)
+        self.assertContains(blocked, "محاولات دخول كثيرة")
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(LoginAttempt.objects.count(), 1)
+        self.assertTrue(
+            AuditLog.objects.filter(
+                action=AuditLog.SECURITY,
+                details__event="temporary_login_lockout",
+            ).exists()
+        )
+
+    @override_settings(
+        EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"
+    )
+    def test_password_reset_does_not_reveal_account_and_sends_email(self):
+        response = self.client.post(
+            reverse("password-reset"),
+            {"email": self.user.email},
+        )
+        self.assertRedirects(response, reverse("password-reset-done"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("password-reset", mail.outbox[0].body)
+
+        unknown = self.client.post(
+            reverse("password-reset"),
+            {"email": "unknown@example.com"},
+        )
+        self.assertRedirects(unknown, reverse("password-reset-done"))
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_oversized_image_is_rejected(self):
+        upload = SimpleUploadedFile(
+            "large.jpg",
+            b"x" * (MAX_IMAGE_SIZE + 1),
+            content_type="image/jpeg",
+        )
+        with self.assertRaisesMessage(ValidationError, "5 ميجابايت"):
+            validate_uploaded_image(upload)

@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import timezone
+from datetime import timedelta
 
 from core.models import Branch, Employee
 from customers.models import Customer, Vehicle
@@ -122,5 +124,42 @@ class WorkOrderWorkflowTests(TestCase):
             "يجب تحديد فني مسؤول قبل بدء الصيانة",
         ):
             order.save(update_fields=["status"])
+
+    def test_branch_appointment_capacity_is_enforced(self):
+        self.branch.appointment_capacity = 2
+        self.branch.save(update_fields=["appointment_capacity"])
+        scheduled_at = timezone.now() + timedelta(days=1)
+        vehicles = [self.vehicle]
+        for index in (2, 3):
+            vehicles.append(Vehicle.objects.create(
+                customer=self.customer,
+                plate_number=f"د و ر {index}",
+                chassis_number=f"WORKFLOW-CHASSIS-{index}",
+                brand="Toyota",
+                model="Camry",
+                year=2025,
+                color="White",
+                mileage=1000,
+            ))
+
+        for vehicle in vehicles[:2]:
+            WorkOrder.objects.create(
+                branch=self.branch,
+                customer=self.customer,
+                vehicle=vehicle,
+                scheduled_at=scheduled_at,
+                description="موعد ضمن السعة",
+                mileage=1000,
+            )
+
+        with self.assertRaisesMessage(ValidationError, "اكتملت سعة هذا الموعد"):
+            WorkOrder.objects.create(
+                branch=self.branch,
+                customer=self.customer,
+                vehicle=vehicles[2],
+                scheduled_at=scheduled_at,
+                description="موعد يتجاوز السعة",
+                mileage=1000,
+            )
 
 # Create your tests here.

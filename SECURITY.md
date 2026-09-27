@@ -24,5 +24,7 @@ as a hosted production service.
 Masar uses Django's CSRF and password protections, role-based authorization,
 customer ownership checks, environment-based secrets, secure production
 cookies, HTTPS redirection, HSTS, and database transactions for multi-step
-inventory and financial operations.
+inventory and financial operations. Sign-in attempts are throttled, sensitive
+changes are recorded in an audit trail, and uploaded maintenance images are
+restricted by type and size.
 

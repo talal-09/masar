@@ -32,6 +32,7 @@ ROLE_MODELS = {
         "stockmovement",
         "contactmessage",
         "workshopreview",
+        "auditlog",
     },
     "receptionist": {
         "customer",

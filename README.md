@@ -34,6 +34,7 @@ Masar is an Arabic-first, full-stack workshop management platform built with Dja
 ## Features
 
 - Customer registration, authentication, and profile management
+- Configurable per-branch appointment capacity with concurrency-safe booking
 - Vehicle registration and maintenance history
 - Maintenance requests and work-order lifecycle tracking
 - Workshop branches, employees, roles, and scoped permissions
@@ -41,7 +42,10 @@ Masar is an Arabic-first, full-stack workshop management platform built with Dja
 - Spare-parts inventory and stock movement tracking
 - Quotes, invoices, discounts, and payment recording
 - Customer notifications and status updates
+- Password recovery with non-enumerating responses
 - Separate customer portal and management back office
+- Management reports with date filters and CSV export
+- Audit trail for management and customer actions
 - Arabic and English interface support
 - Responsive templates and custom error pages
 
@@ -72,6 +76,8 @@ Masar is an Arabic-first, full-stack workshop management platform built with Dja
 - Environment-based secrets and production configuration
 - Secure cookies, HTTPS redirection, HSTS, and clickjacking protection in production
 - Role-based permissions and customer ownership checks
+- Database-backed sign-in throttling and security-event auditing
+- Validated image types and a 5 MB upload limit
 - Database transactions for multi-step financial and inventory operations
 - Pagination and optimized related-object queries
 - Automated tests covering authentication, permissions, workflows, inventory, and billing
@@ -119,6 +125,13 @@ The project reads configuration from environment variables. Copy `.env.example` 
 | `CLOUDINARY_CLOUD_NAME` | Optional Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Optional Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Optional Cloudinary API secret |
+| `DJANGO_EMAIL_BACKEND` | Password-reset email backend; production defaults to no delivery until configured |
+| `DJANGO_EMAIL_HOST` | Optional SMTP host |
+| `DJANGO_EMAIL_PORT` | Optional SMTP port; defaults to `587` |
+| `DJANGO_EMAIL_HOST_USER` | Optional SMTP username |
+| `DJANGO_EMAIL_HOST_PASSWORD` | Optional SMTP password |
+| `DJANGO_EMAIL_USE_TLS` | Enables SMTP TLS |
+| `DJANGO_DEFAULT_FROM_EMAIL` | Sender address for password-reset email |
 
 Never commit `.env`, database files, uploaded media, or production credentials.
 
@@ -131,7 +144,7 @@ python manage.py check
 python manage.py test
 ```
 
-Current local verification: **64 tests passing**.
+Current local verification: **70 tests passing**.
 
 Every push and pull request to `main` runs the same checks through GitHub Actions.
 
