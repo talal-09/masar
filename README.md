@@ -18,10 +18,18 @@ Masar is an Arabic-first, full-stack workshop management platform built with Dja
 ## Project Preview
 
 <p align="center">
-  <img src="docs/assets/masar-showcase.png" alt="Masar bilingual workshop-management showcase with an operations dashboard and service workflow" width="100%">
+  <img src="docs/assets/masar-showcase-en.png" alt="Masar workshop-management platform and service workflow" width="100%">
 </p>
 
 > The public showcase uses synthetic demonstration data only. It does not connect to the Django application or expose operational records.
+
+### Management Dashboard
+
+<p align="center">
+  <img src="docs/assets/masar-center-dashboard-en.png" alt="Masar management dashboard showing workshop metrics and branch status" width="100%">
+</p>
+
+> Captured from the real Django management interface using synthetic local data. No customer or production records are shown.
 
 ## Features
 
